@@ -1,29 +1,23 @@
-# tatustatus and Outstanding Tasks – ViralSynth
+# Status and Outstanding Tasks – ViralSynth
 
-This file tracks the remaining work required to bring the ViralSynth platform to production readiness. It should be updated continuously by the Project‑Manager agent.
+This file tracks the remaining work required to bring the ViralSynth platform to production readiness. It should be updated continuously by the Project Manager agent.
 
 ## Pending PRs
-
 - *(None yet)*
 
 ## Outstanding Tasks
-
-1. **Apify Integration** – Implement real scraping of top performing content using the Apify API and connect it to the ingestion endpoint.
-2. **Audio & Video Analysis** – Integrate speech‑to‑text and video analysis services to extract pacing, style and on‑screen text.
-3. **Pattern Recognition Logic** – Replace stubbed strategy logic with real pattern extraction using multi‑modal AI models.
-4. **DALL‑E Integration** – Use the DALL‑E 3 API to generate storyboards for generated content packages.
-5. **Database Integration** – Implement persistence with Supabase or Firebase for user data, analytics and generated packages.
-6. **Authentication & Accounts** – Add user authentication and authorization via Supabase or Firebase.
-7. **UI Polishing** – Refine the dashboard UI with responsive layout, error handling and loading states.
-8. **Testing & CI** – Write unit and integration tests for backend and frontend; set up GitHub Actions for continuous integration.
-9. **Observability** – Add structured logging, metrics and health checks for each service.
-10. **Documentation** – Expand README and internal docs as new features are added; generate OpenAPI docs.
+1. **Apify Integration** – Implement real scraping of top performing content from TikTok, Reels and Shorts using the Apify API. Connect scraped data to the ingestion endpoint in the backend.
+2. **Audio & Video Analysis** – Build or integrate modules for speech-to-text transcription and video analysis to extract pacing, style, on-screen text and trending audio identifiers.
+3. **Pattern Recognition Logic** – Implement the Generative Strategy Core’s pattern extraction logic using multi-modal AI models. Identify hooks, narrative arcs and visual formulas.
+4. **DALL‑E Integration** – Use the DALL‑E 3 API (or similar) to generate storyboard images for content packages. Handle API errors and rate limits.
+5. **Database Integration** – Design and implement database schemas for storing trends, analysis results, generated scripts and storyboards. Use Supabase or Firebase for persistence.
+6. **Authentication & Accounts** – Add user authentication and authorization via Supabase or Firebase. Support multi‑tenant access control.
+7. **UI Implementation** – Build the Next.js frontend with Tailwind CSS based on the v0.dev generated design. Include an input form for prompts and a display area for generated content packages.
+8. **Testing & CI** – Write unit and integration tests for both frontend and backend. Configure GitHub Actions for continuous integration and deployment.
+9. **Observability** – Add structured logging, monitoring and error handling for each service. Implement alerts for critical failures.
+10. **Documentation** – Expand `README.md` and `docs/` with setup instructions, API descriptions, architecture diagrams and usage examples.
+11. **Deployment Configuration** – Prepare configuration files for deployment on Vercel (frontend) and Google Cloud Run (backend). Include environment variables and secret management.
+12. **Project Management Updates** – Ensure `status.md` is kept up to date with progress, new tasks and links to issues or pull requests.
 
 ## Completed
-
-- Repository scaffold created with FastAPI backend and Next.js frontend placeholders.
-- Initial agents specifications added.
-
-## Instructions to Agents
-
-Refer to `agents.md` and the specialist `agents_* .md` files for detailed responsibilities and tasks.
+- *(No tasks completed yet)*
