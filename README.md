@@ -32,9 +32,9 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
 
 | Method | Endpoint        | Description                          |
 |-------|-----------------|--------------------------------------|
-| POST  | `/ingest/`      | Ingest trending content data for analysis. |
-| POST  | `/strategy/`    | Analyze patterns and strategies from ingested data. |
-| POST  | `/generate/`    | Generate a full content package (script, storyboard, notes) based on a prompt. |
+| POST  | `/api/ingest`      | Ingest trending content data for analysis. |
+| POST  | `/api/strategy`    | Analyze patterns and strategies from ingested data. |
+| POST  | `/api/generate`    | Generate a full content package (script, storyboard, notes, variations) based on a prompt. |
 
 These endpoints currently return placeholder responses and should be extended with logic to call scraping services, transcription models and generative models.
 
@@ -55,7 +55,11 @@ These endpoints currently return placeholder responses and should be extended wi
 
    The dashboard will be available at `http://localhost:3000`.
 
-The frontend fetches data from the backend’s `/generate` endpoint, displays the generated script and production notes, and renders image storyboards. Tailwind CSS is configured in `tailwind.config.js` and global styles are defined in `styles/globals.css`.
+The frontend fetches data from the backend’s `/api/generate` endpoint, displays the generated script and production notes, and renders image storyboards. Tailwind CSS is configured in `tailwind.config.js` and global styles are defined in `styles/globals.css`.
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and populate it with API keys for Apify, Supabase, and AI providers before running locally or deploying.
 
 ## Deployment
 

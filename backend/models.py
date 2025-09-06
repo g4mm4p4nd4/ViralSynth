@@ -1,5 +1,7 @@
+"""Pydantic data models used across the ViralSynth backend."""
+
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 class IngestRequest(BaseModel):
@@ -9,6 +11,7 @@ class IngestRequest(BaseModel):
 
 
 class IngestResponse(BaseModel):
+    """Response confirming that an ingest request was received."""
     message: str
 
 
@@ -33,3 +36,7 @@ class GenerateResponse(BaseModel):
     script: str
     storyboard: List[str]
     notes: List[str]
+    variations: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Platform-specific hook and CTA variations",
+    )

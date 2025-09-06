@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException
-from typing import List
+"""Endpoints for ingesting trending content into ViralSynth."""
+
+from fastapi import APIRouter
 
 from ..models import IngestRequest, IngestResponse
 
 router = APIRouter(
-    prefix="/ingest",
+    prefix="/api/ingest",
     tags=["ingest"],
 )
 

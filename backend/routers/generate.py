@@ -1,10 +1,11 @@
-from fastapi import APIRouter
+"""Endpoint for generating multi-modal content packages."""
+
 from fastapi import APIRouter
 
 from ..models import GenerateRequest, GenerateResponse
 
 router = APIRouter(
-    prefix="/generate",
+    prefix="/api/generate",
     tags=["generate"],
 )
 
@@ -32,5 +33,14 @@ async def generate_content(request: GenerateRequest) -> GenerateResponse:
         "Maintain an average shot length of 1.2 seconds",
         "Film the A-roll with a blurred background",
     ]
+    variations = {
+        "tiktok": "Hook optimized for TikTok with quick CTA",
+        "instagram": "Reels variation focusing on visual polish",
+    }
 
-    return GenerateResponse(script=script, storyboard=storyboard, notes=notes)
+    return GenerateResponse(
+        script=script,
+        storyboard=storyboard,
+        notes=notes,
+        variations=variations,
+    )

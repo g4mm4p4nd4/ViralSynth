@@ -1,10 +1,11 @@
+"""Endpoints that expose content strategy insights."""
+
 from fastapi import APIRouter
-from typing import List
 
 from ..models import StrategyRequest, StrategyResponse
 
 router = APIRouter(
-    prefix="/strategy",
+    prefix="/api/strategy",
     tags=["strategy"],
 )
 
