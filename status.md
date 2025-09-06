@@ -18,6 +18,9 @@ This file tracks the remaining work required to bring the ViralSynth platform to
 10. **Documentation** – Expand `README.md` and `docs/` with setup instructions, API descriptions, architecture diagrams and usage examples.
 11. **Deployment Configuration** – Prepare configuration files for deployment on Vercel (frontend) and Google Cloud Run (backend). Include environment variables and secret management.
 12. **Project Management Updates** – Ensure `status.md` is kept up to date with progress, new tasks and links to issues or pull requests.
+13. **Architecture Documentation** – Produce `docs/architecture.md` outlining system components and interactions.
+14. **API Contract Documentation** – Create `docs/api_contracts.md` detailing request and response schemas for all endpoints.
 
 ## Completed
-- *(No tasks completed yet)*
+- Standardized backend API routes under `/api` and synced frontend calls.
+- Added `.env.example` with required environment variable placeholders.

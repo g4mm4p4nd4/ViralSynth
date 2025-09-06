@@ -1,13 +1,21 @@
 import { useState } from 'react';
 
+interface GenerateResponse {
+  script: string;
+  storyboard: string[];
+  notes: string[];
+  variations: Record<string, string>;
+}
+
 export default function Home() {
   const [prompt, setPrompt] = useState('');
-  const [response, setResponse] = useState<any>(null);
+  const [response, setResponse] = useState<GenerateResponse | null>(null);
 
+  // Calls the backend to generate a placeholder content package
   const handleGenerate = async () => {
     if (!prompt) return;
     try {
-      const res = await fetch('http://localhost:8000/generate', {
+      const res = await fetch('http://localhost:8000/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),
@@ -48,11 +56,23 @@ export default function Home() {
               ))}
             </div>
             <h2 className="text-2xl font-semibold mb-2">Production Notes</h2>
-            <ul className="list-disc list-inside">
+            <ul className="list-disc list-inside mb-4">
               {response.notes && response.notes.map((note: string, idx: number) => (
                 <li key={idx}>{note}</li>
               ))}
             </ul>
+            {response.variations && (
+              <div>
+                <h2 className="text-2xl font-semibold mb-2">Platform Variations</h2>
+                <ul className="list-disc list-inside">
+                  {Object.entries(response.variations).map(([platform, text]) => (
+                    <li key={platform}>
+                      <strong>{platform}:</strong> {text}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>
