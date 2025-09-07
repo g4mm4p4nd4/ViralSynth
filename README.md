@@ -7,7 +7,7 @@ ViralSynth is an autonomous content strategy & generation engine designed to hel
 This repository contains two services:
 
 - `backend/` – a FastAPI application that exposes REST endpoints for ingesting trending content, analyzing strategies and generating content packages.
-- `frontend/` – a Next.js webapp with Tailwind CSS that provides a dashboard for entering prompts and viewing generated scripts, images and notes.
+- `frontend/` – a Next.js webapp with Tailwind CSS that provides a dashboard for entering prompts, triggering ingestion and strategy analysis, and viewing generated scripts, images and notes.
 
 Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spec_writer.md`, `agents_project_manager.md`) outline the autonomous agents used to build the system. The `status.md` file tracks outstanding work.
 
@@ -20,7 +20,8 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
    pip install -r requirements.txt
    ```
 
-3. Start the development server:
+3. Populate a `.env` file with required environment variables (see `.env.example`).
+4. Start the development server:
 
    ```bash
    uvicorn main:app --reload
@@ -30,13 +31,11 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
 
 ### API Endpoints
 
-| Method | Endpoint        | Description                          |
-|-------|-----------------|--------------------------------------|
-| POST  | `/api/ingest`      | Ingest trending content data for analysis. |
-| POST  | `/api/strategy`    | Analyze patterns and strategies from ingested data. |
-| POST  | `/api/generate`    | Generate a full content package (script, storyboard, notes, variations) based on a prompt. |
-
-These endpoints currently return placeholder responses and should be extended with logic to call scraping services, transcription models and generative models.
+| Method | Endpoint | Description |
+|-------|----------|-------------|
+| POST | `/api/ingest` | Scrape top‑performing videos from Apify, transcribe audio and analyse visual style. Results are stored in Supabase. |
+| POST | `/api/strategy` | Analyse previously ingested data to identify recurring patterns and templates. |
+| POST | `/api/generate` | Generate a full content package (script, storyboard via DALL‑E, production notes, platform variations) for a user prompt. |
 
 ## Frontend Setup
 
@@ -55,7 +54,7 @@ These endpoints currently return placeholder responses and should be extended wi
 
    The dashboard will be available at `http://localhost:3000`.
 
-The frontend fetches data from the backend’s `/api/generate` endpoint, displays the generated script and production notes, and renders image storyboards. Tailwind CSS is configured in `tailwind.config.js` and global styles are defined in `styles/globals.css`.
+The frontend now supports triggering ingestion and strategy analysis in addition to content generation. Tailwind CSS is configured in `tailwind.config.js` and global styles are defined in `styles/globals.css`.
 
 ### Environment Variables
 
@@ -65,7 +64,7 @@ Copy `.env.example` to `.env` and populate it with API keys for Apify, Supabase,
 
 - **Frontend**: Deploy the Next.js application to Vercel for automatic builds and previews.
 - **Backend**: Containerize the FastAPI service and deploy to a managed server (e.g. Google Cloud Run or AWS Fargate).
-- **Database**: Use Supabase or Firebase for real‑time data storage and authentication.
+- **Database**: Use Supabase for real‑time data storage and authentication.
 
 ## Contributing
 
@@ -75,4 +74,4 @@ Copy `.env.example` to `.env` and populate it with API keys for Apify, Supabase,
 
 ---
 
-This README provides a starting point. Refer to the agent specification files for detailed responsibilities and to the `status.md` file for outstanding tasks.
+Refer to the agent specification files for detailed responsibilities and to the `status.md` file for outstanding tasks.

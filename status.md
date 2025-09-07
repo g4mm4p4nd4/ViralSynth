@@ -6,16 +6,9 @@ This file tracks the remaining work required to bring the ViralSynth platform to
 - *(None yet)*
 
 ## Outstanding Tasks
-1. **Apify Integration** – Implement real scraping of top performing content from TikTok, Reels and Shorts using the Apify API. Connect scraped data to the ingestion endpoint in the backend.
-2. **Audio & Video Analysis** – Build or integrate modules for speech-to-text transcription and video analysis to extract pacing, style, on-screen text and trending audio identifiers.
-3. **Pattern Recognition Logic** – Implement the Generative Strategy Core’s pattern extraction logic using multi-modal AI models. Identify hooks, narrative arcs and visual formulas.
-4. **DALL‑E Integration** – Use the DALL‑E 3 API (or similar) to generate storyboard images for content packages. Handle API errors and rate limits.
-5. **Database Integration** – Design and implement database schemas for storing trends, analysis results, generated scripts and storyboards. Use Supabase or Firebase for persistence.
 6. **Authentication & Accounts** – Add user authentication and authorization via Supabase or Firebase. Support multi‑tenant access control.
-7. **UI Implementation** – Build the Next.js frontend with Tailwind CSS based on the v0.dev generated design. Include an input form for prompts and a display area for generated content packages.
 8. **Testing & CI** – Write unit and integration tests for both frontend and backend. Configure GitHub Actions for continuous integration and deployment.
 9. **Observability** – Add structured logging, monitoring and error handling for each service. Implement alerts for critical failures.
-10. **Documentation** – Expand `README.md` and `docs/` with setup instructions, API descriptions, architecture diagrams and usage examples.
 11. **Deployment Configuration** – Prepare configuration files for deployment on Vercel (frontend) and Google Cloud Run (backend). Include environment variables and secret management.
 12. **Project Management Updates** – Ensure `status.md` is kept up to date with progress, new tasks and links to issues or pull requests.
 13. **Architecture Documentation** – Produce `docs/architecture.md` outlining system components and interactions.
@@ -24,3 +17,9 @@ This file tracks the remaining work required to bring the ViralSynth platform to
 ## Completed
 - Standardized backend API routes under `/api` and synced frontend calls.
 - Added `.env.example` with required environment variable placeholders.
+- Integrated Apify scraping and OpenAI-based audio/video analysis in the ingestion engine.
+- Added pattern recognition logic using LLMs and stored data in Supabase.
+- Implemented DALL‑E storyboard generation and platform-specific variations.
+- Wired Supabase persistence for ingested content and generated packages.
+- Expanded Next.js UI to trigger ingestion, strategy analysis and content generation.
+- Updated `README.md` with setup instructions and environment details.

@@ -1,8 +1,11 @@
 """Endpoints for ingesting trending content into ViralSynth."""
 
+from typing import Any, Dict, List
+
 from fastapi import APIRouter
 
 from ..models import IngestRequest, IngestResponse
+from ..services import ingestion as ingestion_service
 
 router = APIRouter(
     prefix="/api/ingest",
@@ -12,14 +15,14 @@ router = APIRouter(
 
 @router.post("/", response_model=IngestResponse)
 async def ingest_trending_content(request: IngestRequest) -> IngestResponse:
-    """
-    Placeholder endpoint for ingesting top-performing content from various niches.
-
-    In a full implementation, this would call an external scraping service (e.g., Apify)
-    to collect trending videos, transcribe audio, analyze visual style and pacing, and
-    persist the results to a database for further analysis.
-    """
-    # TODO: Integrate with Apify or similar service to scrape trending content
-    # and store analysis results in the database.
-
-    return IngestResponse(message="Ingest request received. Ingestion logic not yet implemented.")
+    """Scrape and analyze top-performing videos for the requested niches."""
+    items: List[Dict[str, Any]] = []
+    for niche in request.niches:
+        try:
+            niche_items = await ingestion_service.ingest_niche(
+                niche, int(request.top_percentile * 100)
+            )
+            items.extend(niche_items)
+        except Exception as exc:
+            items.append({"niche": niche, "error": str(exc)})
+    return IngestResponse(message="ingestion_complete", items=items)
