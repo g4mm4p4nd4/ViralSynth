@@ -57,9 +57,17 @@ These endpoints currently return placeholder responses and should be extended wi
 
 The frontend fetches data from the backend’s `/api/generate` endpoint, displays the generated script and production notes, and renders image storyboards. Tailwind CSS is configured in `tailwind.config.js` and global styles are defined in `styles/globals.css`.
 
+### Ingestion Providers
+
+The ingestion service supports multiple scraping providers. Choose between Apify, Playwright, or Puppeteer by setting the `INGESTION_PROVIDER` environment variable or by sending a `provider` field in requests to `/api/ingest`.
+
+### Transcription Service
+
+Audio is extracted with `ffmpeg` and transcribed via the Groq Whisper API. Set `GROQ_API_KEY` and use the `use_turbo` flag when calling the transcription helper to switch between `whisper-large` and `whisper-turbo` models.
+
 ### Environment Variables
 
-Copy `.env.example` to `.env` and populate it with API keys for Apify, Supabase, and AI providers before running locally or deploying.
+Copy `.env.example` to `.env` and populate it with API keys for Apify, Supabase, AI providers, and transcription services before running locally or deploying.
 
 ## Deployment
 

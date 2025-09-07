@@ -9,6 +9,9 @@ interface GenerateResponse {
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
+  const [niche, setNiche] = useState('');
+  const [provider, setProvider] = useState('apify');
+  const [ingestMessage, setIngestMessage] = useState('');
   const [response, setResponse] = useState<GenerateResponse | null>(null);
 
   // Calls the backend to generate a placeholder content package
@@ -27,10 +30,52 @@ export default function Home() {
     }
   };
 
+  // Calls the backend ingestion endpoint with selected provider
+  const handleIngest = async () => {
+    if (!niche) return;
+    try {
+      const res = await fetch('http://localhost:8000/api/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ niches: [niche], top_percentile: 0.05, provider }),
+      });
+      const data = await res.json();
+      setIngestMessage(data.message);
+    } catch (error) {
+      console.error('Failed to ingest content:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
       <h1 className="text-3xl font-bold mb-4 text-center">ViralSynth</h1>
       <div className="max-w-2xl mx-auto">
+        <div className="mb-6">
+          <input
+            className="w-full p-3 mb-4 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            type="text"
+            placeholder="Enter a niche (e.g. tech)..."
+            value={niche}
+            onChange={(e) => setNiche(e.target.value)}
+          />
+          <select
+            className="w-full p-3 mb-4 rounded bg-gray-800 border border-gray-700 focus:outline-none"
+            value={provider}
+            onChange={(e) => setProvider(e.target.value)}
+          >
+            <option value="apify">Apify</option>
+            <option value="playwright">Playwright</option>
+            <option value="puppeteer">Puppeteer</option>
+          </select>
+          <button
+            className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded w-full transition-colors"
+            onClick={handleIngest}
+          >
+            Ingest Trending Content
+          </button>
+          {ingestMessage && <p className="mt-2 text-sm text-center">{ingestMessage}</p>}
+        </div>
+
         <input
           className="w-full p-3 mb-4 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
           type="text"
