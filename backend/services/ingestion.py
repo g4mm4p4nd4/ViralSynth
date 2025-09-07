@@ -1,7 +1,8 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import os
 import httpx
 from playwright.async_api import async_playwright
+from pyppeteer import launch
 
 APIFY_ACTOR_ID = "your_apify_actor_id"  # replace with actual actor ID
 APIFY_TOKEN = os.environ.get("APIFY_API_TOKEN")
@@ -28,7 +29,7 @@ async def _ingest_niche_apify(niche: str, percentile: int) -> List[Dict[str, Any
             return [{"error": str(exc)}]
 
 async def _ingest_niche_playwright(niche: str, percentile: int) -> List[Dict[str, Any]]:
-    """Scrape trending videos for a niche using Playwright and Puppeteer-style logic.
+    """Scrape trending videos for a niche using Playwright.
 
     This function navigates to a TikTok hashtag page and would extract video metadata.
     The scraping logic is not fully implemented here; you will need to write selectors
@@ -53,9 +54,37 @@ async def _ingest_niche_playwright(niche: str, percentile: int) -> List[Dict[str
     # TODO: Filter items based on percentile threshold
     return items
 
-async def ingest_niche(niche: str, percentile: int) -> List[Dict[str, Any]]:
-    """Route ingestion to the configured provider (Apify or Playwright)."""
-    provider = os.environ.get("INGESTION_PROVIDER", "apify").lower()
-    if provider == "playwright":
+
+async def _ingest_niche_puppeteer(niche: str, percentile: int) -> List[Dict[str, Any]]:
+    """Scrape trending videos for a niche using Pyppeteer.
+
+    This placeholder mirrors the Playwright implementation but relies on the
+    Pyppeteer API. Selectors and scraping logic should be added to gather video
+    metadata and filter the results by percentile.
+    """
+    items: List[Dict[str, Any]] = []
+    try:
+        browser = await launch(headless=True)
+        page = await browser.newPage()
+        url = f"https://www.tiktok.com/tag/{niche}"
+        await page.goto(url)
+        # TODO: Wait for video elements and extract their metadata
+        await browser.close()
+    except Exception as exc:
+        return [{"error": str(exc)}]
+    # TODO: Filter items based on percentile threshold
+    return items
+
+async def ingest_niche(niche: str, percentile: int, provider: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Route ingestion to the requested provider.
+
+    The provider can be specified directly via the ``provider`` parameter or
+    defaults to the ``INGESTION_PROVIDER`` environment variable. Supported
+    providers are ``apify``, ``playwright`` and ``puppeteer``.
+    """
+    provider_name = (provider or os.environ.get("INGESTION_PROVIDER", "apify")).lower()
+    if provider_name == "playwright":
         return await _ingest_niche_playwright(niche, percentile)
+    if provider_name == "puppeteer":
+        return await _ingest_niche_puppeteer(niche, percentile)
     return await _ingest_niche_apify(niche, percentile)

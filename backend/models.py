@@ -8,6 +8,10 @@ class IngestRequest(BaseModel):
     """Request model for ingesting trending content data."""
     niches: List[str] = Field(..., description="List of content niches to ingest, e.g., ['tech', 'fitness'].")
     top_percentile: float = Field(0.05, description="Top percentile threshold (0-1) for selecting high performing content.")
+    provider: Optional[str] = Field(
+        None,
+        description="Optional scraping provider: apify, playwright, or puppeteer."
+    )
 
 
 class IngestResponse(BaseModel):
