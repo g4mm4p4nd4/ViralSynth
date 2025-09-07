@@ -1,6 +1,7 @@
 """Endpoints for ingesting trending content into ViralSynth."""
 
 from fastapi import APIRouter
+from typing import List
 
 from ..models import (
     IngestRequest,
@@ -9,8 +10,8 @@ from ..models import (
     GenerateRequest,
 )
 from ..services.ingestion import ingest_niche
-from .strategy import analyze_strategy
-from .generate import generate_content
+from ..services.strategy import derive_patterns
+from ..services.generation import generate_package
 
 router = APIRouter(
     prefix="/api/ingest",
@@ -29,12 +30,16 @@ async def ingest_trending_content(request: IngestRequest) -> IngestResponse:
     """
     # Call the ingestion service for each niche. The provider can be specified in
     # the request or via the INGESTION_PROVIDER environment variable.
+    video_ids: List[int] = []
     for niche in request.niches:
         percentile = int(request.top_percentile * 100)
-        await ingest_niche(niche, percentile, provider=request.provider)
+        ids = await ingest_niche(niche, percentile, provider=request.provider)
+        video_ids.extend(ids)
 
-    # After ingestion, analyze patterns across niches.
-    strategy_resp = await analyze_strategy(StrategyRequest(niches=request.niches))
+    # After ingestion, analyze patterns across the stored videos.
+    strategy_resp = await derive_patterns(
+        StrategyRequest(niches=request.niches, video_ids=video_ids)
+    )
 
     # Generate a sample content package using the first niche as context.
     sample_prompt = (
@@ -42,10 +47,18 @@ async def ingest_trending_content(request: IngestRequest) -> IngestResponse:
         if request.niches
         else "Generate a viral video idea"
     )
-    generate_resp = await generate_content(GenerateRequest(prompt=sample_prompt))
+    generate_resp = await generate_package(
+        GenerateRequest(
+            prompt=sample_prompt,
+            niche=request.niches[0] if request.niches else None,
+            pattern_ids=strategy_resp.pattern_ids,
+        )
+    )
 
     return IngestResponse(
         message="Ingestion complete",
+        video_ids=video_ids,
         patterns=strategy_resp.patterns,
+        pattern_ids=strategy_resp.pattern_ids,
         generated=generate_resp,
     )

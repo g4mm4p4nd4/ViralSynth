@@ -4,6 +4,8 @@ import httpx
 from playwright.async_api import async_playwright
 from pyppeteer import launch
 
+from .supabase import get_supabase_client
+
 APIFY_ACTOR_ID = os.environ.get("APIFY_ACTOR_ID", "your_apify_actor_id")
 APIFY_TOKEN = os.environ.get("APIFY_API_TOKEN")
 
@@ -75,16 +77,33 @@ async def _ingest_niche_puppeteer(niche: str, percentile: int) -> List[Dict[str,
     # TODO: Filter items based on percentile threshold
     return items
 
-async def ingest_niche(niche: str, percentile: int, provider: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Route ingestion to the requested provider.
+async def ingest_niche(niche: str, percentile: int, provider: Optional[str] = None) -> List[int]:
+    """Ingest a niche using the requested provider and persist results to Supabase.
 
-    The provider can be specified directly via the ``provider`` parameter or
-    defaults to the ``INGESTION_PROVIDER`` environment variable. Supported
-    providers are ``apify``, ``playwright`` and ``puppeteer``.
+    Returns a list of Supabase ``videos`` table IDs for the stored records.
     """
     provider_name = (provider or os.environ.get("INGESTION_PROVIDER", "apify")).lower()
     if provider_name == "playwright":
-        return await _ingest_niche_playwright(niche, percentile)
-    if provider_name == "puppeteer":
-        return await _ingest_niche_puppeteer(niche, percentile)
-    return await _ingest_niche_apify(niche, percentile)
+        items = await _ingest_niche_playwright(niche, percentile)
+    elif provider_name == "puppeteer":
+        items = await _ingest_niche_puppeteer(niche, percentile)
+    else:
+        items = await _ingest_niche_apify(niche, percentile)
+
+    supabase = get_supabase_client()
+    video_ids: List[int] = []
+    if supabase and items:
+        rows = [
+            {
+                "niche": niche,
+                "provider": provider_name,
+                "data": item,
+            }
+            for item in items
+        ]
+        try:
+            resp = supabase.table("videos").insert(rows).execute()
+            video_ids = [r.get("id") for r in resp.data or []]
+        except Exception:
+            pass
+    return video_ids

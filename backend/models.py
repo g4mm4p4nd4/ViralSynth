@@ -9,6 +9,9 @@ class GenerateRequest(BaseModel):
     prompt: str = Field(..., description="User-provided idea or topic for the content.")
     platform: Optional[str] = Field("tiktok", description="Target platform: tiktok, instagram, or youtube.")
     niche: Optional[str] = Field(None, description="Content niche, e.g., tech, fitness, finance.")
+    pattern_ids: Optional[List[int]] = Field(
+        None, description="Optional Supabase pattern IDs to condition generation."
+    )
 
 
 class GenerateResponse(BaseModel):
@@ -19,6 +22,9 @@ class GenerateResponse(BaseModel):
     variations: Dict[str, str] = Field(
         default_factory=dict,
         description="Platform-specific hook and CTA variations",
+    )
+    package_id: Optional[int] = Field(
+        None, description="Supabase ID for the stored generated package."
     )
 
 
@@ -35,7 +41,15 @@ class IngestRequest(BaseModel):
 class IngestResponse(BaseModel):
     """Response confirming that an ingest request was processed."""
     message: str
-    patterns: List[str] = Field(default_factory=list, description="Identified content patterns from ingestion.")
+    video_ids: List[int] = Field(
+        default_factory=list, description="Supabase IDs of stored video records."
+    )
+    patterns: List[str] = Field(
+        default_factory=list, description="Identified content patterns from ingestion."
+    )
+    pattern_ids: List[int] = Field(
+        default_factory=list, description="Supabase IDs of stored patterns."
+    )
     generated: Optional[GenerateResponse] = Field(
         None,
         description="Generated sample content based on identified patterns.",
@@ -45,7 +59,15 @@ class IngestResponse(BaseModel):
 class StrategyRequest(BaseModel):
     """Request model for analyzing content patterns."""
     niches: List[str]
+    video_ids: Optional[List[int]] = Field(
+        None, description="Specific Supabase video IDs to analyze."
+    )
 
 
 class StrategyResponse(BaseModel):
-    patterns: List[str] = Field(default_factory=list, description="Identified successful content patterns.")
+    patterns: List[str] = Field(
+        default_factory=list, description="Identified successful content patterns."
+    )
+    pattern_ids: List[int] = Field(
+        default_factory=list, description="Supabase IDs for stored patterns."
+    )

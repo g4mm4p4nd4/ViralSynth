@@ -32,11 +32,11 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
 
 | Method | Endpoint        | Description                          |
 |-------|-----------------|--------------------------------------|
-| POST  | `/api/ingest`      | Ingest trending content data for analysis and sample generation. |
-| POST  | `/api/strategy`    | Analyze patterns and strategies from ingested data. |
-| POST  | `/api/generate`    | Generate a full content package (script, storyboard, notes, variations) based on a prompt. |
+| POST  | `/api/ingest`      | Ingest trending content data, store videos in Supabase and return pattern and package IDs. |
+| POST  | `/api/strategy`    | Analyze stored videos in Supabase and persist extracted patterns. |
+| POST  | `/api/generate`    | Generate a full content package from stored patterns and save it in Supabase. |
 
-These endpoints currently return placeholder responses and should be extended with logic to call scraping services, transcription models and generative models.
+These endpoints now persist videos, patterns and generated packages to Supabase. LLM and scraping integrations remain rudimentary and should be expanded for production use.
 
 ## Frontend Setup
 
@@ -67,7 +67,7 @@ Audio is extracted with `ffmpeg` and transcribed via the Groq Whisper API. Set `
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and populate it with API keys for Apify (including `APIFY_API_TOKEN` and `APIFY_ACTOR_ID`), Supabase, OpenAI/DALL‑E and transcription services before running locally or deploying.
+Copy `.env.example` to `.env` and populate it with API keys for Apify (including `APIFY_API_TOKEN` and `APIFY_ACTOR_ID`), Supabase (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`), OpenAI/DALL‑E and transcription services before running locally or deploying.
 
 ## Deployment
 
