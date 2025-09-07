@@ -15,18 +15,31 @@ async def derive_patterns(request: StrategyRequest) -> StrategyResponse:
     if supabase:
         try:
             if request.video_ids:
-                query = supabase.table("videos").select("id, transcript, descriptors, niche").in_("id", request.video_ids)
+                query = supabase.table("videos").select(
+                    "id, transcript, pacing, visual_style, onscreen_text, trending_audio, niche"
+                ).in_("id", request.video_ids)
             else:
-                query = supabase.table("videos").select("id, transcript, descriptors, niche").in_("niche", request.niches)
+                query = supabase.table("videos").select(
+                    "id, transcript, pacing, visual_style, onscreen_text, trending_audio, niche"
+                ).in_("niche", request.niches)
             videos = query.execute().data or []
         except Exception:
             videos = []
 
     transcripts = [v.get("transcript", "") for v in videos if v.get("transcript")]
-    descriptors = [v.get("descriptors", "") for v in videos if v.get("descriptors")]
+    pacing = [v.get("pacing") for v in videos if v.get("pacing")]
+    styles = [v.get("visual_style") for v in videos if v.get("visual_style")]
+    texts = [v.get("onscreen_text") for v in videos if v.get("onscreen_text")]
+    audios = [v.get("trending_audio") for v in videos]
+
     prompt = (
-        "Derive 3 concise content patterns from the following transcripts and visual descriptors."
-        f"\nTranscripts:\n{transcripts}\nDescriptors:\n{descriptors}"
+        "You are an expert content strategist. From the following video data, derive concise patterns for hooks, core value loops, "
+        "narrative arcs, visual formulas and CTAs."\
+        f"\nTranscripts: {transcripts}"\
+        f"\nPacing: {pacing}"\
+        f"\nVisual Style: {styles}"\
+        f"\nOn-screen Text: {texts}"\
+        f"\nTrending Audio Flags: {audios}"
     )
 
     try:
@@ -39,8 +52,9 @@ async def derive_patterns(request: StrategyRequest) -> StrategyResponse:
         patterns = [p.strip("- ") for p in raw_patterns if p.strip()]
     except Exception:
         patterns = [
-            "Example pattern: 'Problem-Agitate-Solve' narrative arc",
-            "Example pattern: Use of fast cuts (~0.8s) with on-screen text",
+            "Hook pattern: start with a bold question and match to trending audio",
+            "Visual formula: lo-fi shots with high contrast text overlays",
+            "CTA pattern: direct ask in final shot with on-screen text",
         ]
 
     pattern_ids: List[int] = []

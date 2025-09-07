@@ -28,6 +28,31 @@ class GenerateResponse(BaseModel):
     )
 
 
+class VideoRecord(BaseModel):
+    """Model representing an analyzed video stored in Supabase."""
+
+    id: Optional[int] = Field(None, description="Supabase ID for the video record")
+    url: Optional[str] = Field(None, description="Source URL of the video")
+    niche: Optional[str] = Field(None, description="Niche associated with the video")
+    provider: Optional[str] = Field(None, description="Scraping provider used")
+    transcript: Optional[str] = Field(None, description="Transcribed audio text")
+    pacing: Optional[float] = Field(
+        None, description="Average shot length in seconds derived from scenedetect/opencv"
+    )
+    visual_style: Optional[str] = Field(
+        None, description="Basic visual style classification such as cinematic or lo-fi"
+    )
+    onscreen_text: Optional[str] = Field(
+        None, description="Detected on-screen text via OCR"
+    )
+    audio_id: Optional[str] = Field(
+        None, description="Identifier for the video's audio track"
+    )
+    trending_audio: bool = Field(
+        False, description="Flag indicating if the audio track is trending"
+    )
+
+
 class IngestRequest(BaseModel):
     """Request model for ingesting trending content data."""
     niches: List[str] = Field(..., description="List of content niches to ingest, e.g., ['tech', 'fitness'].")
@@ -40,9 +65,14 @@ class IngestRequest(BaseModel):
 
 class IngestResponse(BaseModel):
     """Response confirming that an ingest request was processed."""
+
     message: str
     video_ids: List[int] = Field(
         default_factory=list, description="Supabase IDs of stored video records."
+    )
+    videos: List[VideoRecord] = Field(
+        default_factory=list,
+        description="Enriched video records stored in Supabase",
     )
     patterns: List[str] = Field(
         default_factory=list, description="Identified content patterns from ingestion."

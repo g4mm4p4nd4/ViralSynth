@@ -8,9 +8,19 @@ interface GenerateResponse {
   package_id?: number;
 }
 
+interface VideoRecord {
+  id?: number;
+  url?: string;
+  pacing?: number;
+  visual_style?: string;
+  onscreen_text?: string;
+  trending_audio?: boolean;
+}
+
 interface IngestResponse {
   message: string;
   video_ids: number[];
+  videos: VideoRecord[];
   patterns: string[];
   pattern_ids: number[];
   generated?: GenerateResponse;
@@ -92,6 +102,19 @@ export default function Home() {
           )}
           {ingestData?.video_ids && ingestData.video_ids.length > 0 && (
             <p className="mt-1 text-xs text-center">Stored videos: {ingestData.video_ids.join(', ')}</p>
+          )}
+          {ingestData?.videos && ingestData.videos.length > 0 && (
+            <div className="mt-4 bg-gray-800 p-4 rounded">
+              <h2 className="text-2xl font-semibold mb-2">Video Analysis</h2>
+              <ul className="list-disc list-inside">
+                {ingestData.videos.map((v, idx) => (
+                  <li key={idx} className="mb-2">
+                    <div>Pacing: {v.pacing ?? 'n/a'}s, Style: {v.visual_style ?? 'n/a'}{v.trending_audio ? ' (Trending audio)' : ''}</div>
+                    {v.onscreen_text && <div className="text-xs">Text: {v.onscreen_text}</div>}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           {ingestData?.patterns && ingestData.patterns.length > 0 && (
             <div className="mt-4 bg-gray-800 p-4 rounded">
