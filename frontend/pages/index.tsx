@@ -5,11 +5,14 @@ interface GenerateResponse {
   storyboard: string[];
   notes: string[];
   variations: Record<string, string>;
+  package_id?: number;
 }
 
 interface IngestResponse {
   message: string;
+  video_ids: number[];
   patterns: string[];
+  pattern_ids: number[];
   generated?: GenerateResponse;
 }
 
@@ -24,10 +27,15 @@ export default function Home() {
   const handleGenerate = async () => {
     if (!prompt) return;
     try {
+      const payload: any = { prompt };
+      if (niche) payload.niche = niche;
+      if (ingestData?.pattern_ids?.length) {
+        payload.pattern_ids = ingestData.pattern_ids;
+      }
       const res = await fetch('http://localhost:8000/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       setResponse(data);
@@ -82,6 +90,9 @@ export default function Home() {
           {ingestData?.message && (
             <p className="mt-2 text-sm text-center">{ingestData.message}</p>
           )}
+          {ingestData?.video_ids && ingestData.video_ids.length > 0 && (
+            <p className="mt-1 text-xs text-center">Stored videos: {ingestData.video_ids.join(', ')}</p>
+          )}
           {ingestData?.patterns && ingestData.patterns.length > 0 && (
             <div className="mt-4 bg-gray-800 p-4 rounded">
               <h2 className="text-2xl font-semibold mb-2">Strategy Results</h2>
@@ -90,6 +101,9 @@ export default function Home() {
                   <li key={idx}>{pattern}</li>
                 ))}
               </ul>
+              {ingestData.pattern_ids && ingestData.pattern_ids.length > 0 && (
+                <p className="text-xs mt-2">Pattern IDs: {ingestData.pattern_ids.join(', ')}</p>
+              )}
             </div>
           )}
           {ingestData?.generated && (
@@ -122,6 +136,9 @@ export default function Home() {
                   </ul>
                 </div>
               )}
+              {ingestData.generated.package_id && (
+                <p className="text-xs mt-2">Package ID: {ingestData.generated.package_id}</p>
+              )}
             </div>
           )}
         </div>
@@ -140,8 +157,8 @@ export default function Home() {
           Generate Content Package
         </button>
 
-        {response && (
-          <div className="bg-gray-800 p-4 rounded">
+            {response && (
+              <div className="bg-gray-800 p-4 rounded">
             <h2 className="text-2xl font-semibold mb-2">Generated Script</h2>
             <p className="mb-4 whitespace-pre-line">{response.script}</p>
             <h2 className="text-2xl font-semibold mb-2">Storyboard</h2>
@@ -167,6 +184,9 @@ export default function Home() {
                   ))}
                 </ul>
               </div>
+            )}
+            {response.package_id && (
+              <p className="text-xs mt-2">Package ID: {response.package_id}</p>
             )}
           </div>
         )}
