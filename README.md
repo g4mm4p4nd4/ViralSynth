@@ -14,7 +14,7 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
 ## Backend Setup
 
 1. Install Python 3.10+ and create a virtual environment.
-2. Navigate to the `backend` directory and install dependencies:
+2. Navigate to the `backend` directory and install dependencies (FastAPI, OpenAI, Supabase, Playwright and Pyppeteer clients):
 
    ```bash
    pip install -r requirements.txt
@@ -32,7 +32,7 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
 
 | Method | Endpoint        | Description                          |
 |-------|-----------------|--------------------------------------|
-| POST  | `/api/ingest`      | Ingest trending content data for analysis. |
+| POST  | `/api/ingest`      | Ingest trending content data for analysis and sample generation. |
 | POST  | `/api/strategy`    | Analyze patterns and strategies from ingested data. |
 | POST  | `/api/generate`    | Generate a full content package (script, storyboard, notes, variations) based on a prompt. |
 
@@ -55,11 +55,11 @@ These endpoints currently return placeholder responses and should be extended wi
 
    The dashboard will be available at `http://localhost:3000`.
 
-The frontend fetches data from the backend’s `/api/generate` endpoint, displays the generated script and production notes, and renders image storyboards. Tailwind CSS is configured in `tailwind.config.js` and global styles are defined in `styles/globals.css`.
+The frontend includes a provider dropdown for ingestion requests and displays strategy results along with scripts, DALL‑E storyboard images, production notes and platform‑specific variations returned from the generation endpoint. Tailwind CSS is configured in `tailwind.config.js` and global styles are defined in `styles/globals.css`.
 
 ### Ingestion Providers
 
-The ingestion service supports multiple scraping providers. Choose between Apify, Playwright, or Puppeteer by setting the `INGESTION_PROVIDER` environment variable or by sending a `provider` field in requests to `/api/ingest`.
+The ingestion service supports multiple scraping providers. Choose between Apify, Playwright, or Puppeteer by setting the `INGESTION_PROVIDER` environment variable or by sending a `provider` field in requests to `/api/ingest`. Ingestion responses include detected content patterns and a sample generated package.
 
 ### Transcription Service
 
@@ -67,7 +67,7 @@ Audio is extracted with `ffmpeg` and transcribed via the Groq Whisper API. Set `
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and populate it with API keys for Apify, Supabase, AI providers, and transcription services before running locally or deploying.
+Copy `.env.example` to `.env` and populate it with API keys for Apify (including `APIFY_API_TOKEN` and `APIFY_ACTOR_ID`), Supabase, OpenAI/DALL‑E and transcription services before running locally or deploying.
 
 ## Deployment
 

@@ -3,5 +3,7 @@ uvicorn[standard]==0.23.2
 pydantic==1.10.12
 python-multipart==0.0.7
 httpx==0.26.0
+openai
+supabase
 playwright==1.41.2
 pyppeteer==1.0.2

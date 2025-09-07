@@ -24,3 +24,5 @@ This file tracks the remaining work required to bring the ViralSynth platform to
 ## Completed
 - Standardized backend API routes under `/api` and synced frontend calls.
 - Added `.env.example` with required environment variable placeholders.
+- Integrated ingestion providers (Apify, Playwright, Puppeteer) with strategy and generation placeholders.
+- Frontend now offers provider selection, displays strategy patterns and renders generated scripts, storyboard images and notes.

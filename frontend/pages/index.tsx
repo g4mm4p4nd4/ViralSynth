@@ -7,11 +7,17 @@ interface GenerateResponse {
   variations: Record<string, string>;
 }
 
+interface IngestResponse {
+  message: string;
+  patterns: string[];
+  generated?: GenerateResponse;
+}
+
 export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [niche, setNiche] = useState('');
   const [provider, setProvider] = useState('apify');
-  const [ingestMessage, setIngestMessage] = useState('');
+  const [ingestData, setIngestData] = useState<IngestResponse | null>(null);
   const [response, setResponse] = useState<GenerateResponse | null>(null);
 
   // Calls the backend to generate a placeholder content package
@@ -40,7 +46,7 @@ export default function Home() {
         body: JSON.stringify({ niches: [niche], top_percentile: 0.05, provider }),
       });
       const data = await res.json();
-      setIngestMessage(data.message);
+      setIngestData(data);
     } catch (error) {
       console.error('Failed to ingest content:', error);
     }
@@ -73,7 +79,51 @@ export default function Home() {
           >
             Ingest Trending Content
           </button>
-          {ingestMessage && <p className="mt-2 text-sm text-center">{ingestMessage}</p>}
+          {ingestData?.message && (
+            <p className="mt-2 text-sm text-center">{ingestData.message}</p>
+          )}
+          {ingestData?.patterns && ingestData.patterns.length > 0 && (
+            <div className="mt-4 bg-gray-800 p-4 rounded">
+              <h2 className="text-2xl font-semibold mb-2">Strategy Results</h2>
+              <ul className="list-disc list-inside">
+                {ingestData.patterns.map((pattern, idx) => (
+                  <li key={idx}>{pattern}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {ingestData?.generated && (
+            <div className="mt-4 bg-gray-800 p-4 rounded">
+              <h2 className="text-2xl font-semibold mb-2">Generated Script</h2>
+              <p className="mb-4 whitespace-pre-line">{ingestData.generated.script}</p>
+              <h2 className="text-2xl font-semibold mb-2">Storyboard</h2>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {ingestData.generated.storyboard.map((img, idx) => (
+                  <img key={idx} src={img} alt={`ingest-frame-${idx}`} className="rounded" />
+                ))}
+              </div>
+              <h2 className="text-2xl font-semibold mb-2">Production Notes</h2>
+              <ul className="list-disc list-inside mb-4">
+                {ingestData.generated.notes.map((note, idx) => (
+                  <li key={idx}>{note}</li>
+                ))}
+              </ul>
+              {ingestData.generated.variations && (
+                <div>
+                  <h2 className="text-2xl font-semibold mb-2">Platform Variations</h2>
+                  <ul className="list-disc list-inside">
+                    {Object.entries(ingestData.generated.variations).map(
+                      ([platform, text]) => (
+                        <li key={platform}>
+                          <strong>{platform}:</strong> {text}
+                        </li>
+                      )
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <input

@@ -4,7 +4,7 @@ import httpx
 from playwright.async_api import async_playwright
 from pyppeteer import launch
 
-APIFY_ACTOR_ID = "your_apify_actor_id"  # replace with actual actor ID
+APIFY_ACTOR_ID = os.environ.get("APIFY_ACTOR_ID", "your_apify_actor_id")
 APIFY_TOKEN = os.environ.get("APIFY_API_TOKEN")
 
 async def _ingest_niche_apify(niche: str, percentile: int) -> List[Dict[str, Any]]:

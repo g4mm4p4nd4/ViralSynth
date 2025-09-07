@@ -2,8 +2,15 @@
 
 from fastapi import APIRouter
 
-from ..models import IngestRequest, IngestResponse
+from ..models import (
+    IngestRequest,
+    IngestResponse,
+    StrategyRequest,
+    GenerateRequest,
+)
 from ..services.ingestion import ingest_niche
+from .strategy import analyze_strategy
+from .generate import generate_content
 
 router = APIRouter(
     prefix="/api/ingest",
@@ -26,4 +33,19 @@ async def ingest_trending_content(request: IngestRequest) -> IngestResponse:
         percentile = int(request.top_percentile * 100)
         await ingest_niche(niche, percentile, provider=request.provider)
 
-    return IngestResponse(message="Ingest request received. Ingestion logic not yet implemented.")
+    # After ingestion, analyze patterns across niches.
+    strategy_resp = await analyze_strategy(StrategyRequest(niches=request.niches))
+
+    # Generate a sample content package using the first niche as context.
+    sample_prompt = (
+        f"Generate a viral video idea for the {request.niches[0]} niche"
+        if request.niches
+        else "Generate a viral video idea"
+    )
+    generate_resp = await generate_content(GenerateRequest(prompt=sample_prompt))
+
+    return IngestResponse(
+        message="Ingestion complete",
+        patterns=strategy_resp.patterns,
+        generated=generate_resp,
+    )
