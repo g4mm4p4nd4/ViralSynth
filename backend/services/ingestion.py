@@ -1,23 +1,32 @@
-from typing import List, Dict, Any, Optional
+"""Ingestion service for fetching videos and enriching them with analysis."""
+
+from __future__ import annotations
+
 import os
+from typing import Any, Dict, List, Optional
+
+import cv2
+import numpy as np
 import httpx
+import pytesseract
+from scenedetect import VideoManager, SceneManager
+from scenedetect.detectors import ContentDetector
 from playwright.async_api import async_playwright
 from pyppeteer import launch
 
+from ..models import VideoRecord
 from .supabase import get_supabase_client
+from .transcription import transcribe_video
 
 APIFY_ACTOR_ID = os.environ.get("APIFY_ACTOR_ID", "your_apify_actor_id")
 APIFY_TOKEN = os.environ.get("APIFY_API_TOKEN")
+pytesseract.pytesseract.tesseract_cmd = os.environ.get("PYTESSERACT_PATH", "tesseract")
+
 
 async def _ingest_niche_apify(niche: str, percentile: int) -> List[Dict[str, Any]]:
-    """Fetch trending videos for a niche using the Apify actor API.
+    """Fetch trending videos for a niche using the Apify actor API (placeholder)."""
 
-    This placeholder implementation demonstrates the structure for calling Apify. When
-    a valid actor ID and API token are configured, it should send a request to
-    run the actor with the given input and return the resulting items.
-    """
-    # Construct the request to start an actor run (this is a placeholder URL and payload)
-    url = f"https://api.apify.com/v2/actors/{APIFY_ACTOR_ID}/runs"  # example endpoint
+    url = f"https://api.apify.com/v2/actors/{APIFY_ACTOR_ID}/runs"
     payload = {"niche": niche, "percentile": percentile}
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {APIFY_TOKEN}"}
     async with httpx.AsyncClient() as client:
@@ -25,63 +34,96 @@ async def _ingest_niche_apify(niche: str, percentile: int) -> List[Dict[str, Any
             # resp = await client.post(url, json=payload, headers=headers)
             # data = resp.json()
             # return data.get("items", [])
-            # NOTE: Actual integration should poll for run completion and fetch results
             return []
-        except Exception as exc:
+        except Exception as exc:  # pragma: no cover - network failure
             return [{"error": str(exc)}]
 
-async def _ingest_niche_playwright(niche: str, percentile: int) -> List[Dict[str, Any]]:
-    """Scrape trending videos for a niche using Playwright.
 
-    This function navigates to a TikTok hashtag page and would extract video metadata.
-    The scraping logic is not fully implemented here; you will need to write selectors
-    to extract video URLs, captions, and metrics, then sort and filter by percentile.
-    """
+async def _ingest_niche_playwright(niche: str, percentile: int) -> List[Dict[str, Any]]:
+    """Scrape trending videos for a niche using Playwright (placeholder)."""
+
     items: List[Dict[str, Any]] = []
     try:
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
-            url = f"https://www.tiktok.com/tag/{niche}"
-            await page.goto(url)
-            # TODO: Wait for video elements and extract their metadata
-            # Example placeholder logic:
-            # videos = await page.query_selector_all('div[data-e2e="video-item"]')
-            # for video in videos:
-            #     title = await video.query_selector('a div').inner_text()
-            #     items.append({"title": title})
+            await page.goto(f"https://www.tiktok.com/tag/{niche}")
+            # TODO: Extract video metadata here
             await browser.close()
-    except Exception as exc:
+    except Exception as exc:  # pragma: no cover - network failure
         return [{"error": str(exc)}]
-    # TODO: Filter items based on percentile threshold
     return items
 
 
 async def _ingest_niche_puppeteer(niche: str, percentile: int) -> List[Dict[str, Any]]:
-    """Scrape trending videos for a niche using Pyppeteer.
+    """Scrape trending videos for a niche using Pyppeteer (placeholder)."""
 
-    This placeholder mirrors the Playwright implementation but relies on the
-    Pyppeteer API. Selectors and scraping logic should be added to gather video
-    metadata and filter the results by percentile.
-    """
     items: List[Dict[str, Any]] = []
     try:
         browser = await launch(headless=True)
         page = await browser.newPage()
-        url = f"https://www.tiktok.com/tag/{niche}"
-        await page.goto(url)
-        # TODO: Wait for video elements and extract their metadata
+        await page.goto(f"https://www.tiktok.com/tag/{niche}")
+        # TODO: Extract video metadata here
         await browser.close()
-    except Exception as exc:
+    except Exception as exc:  # pragma: no cover - network failure
         return [{"error": str(exc)}]
-    # TODO: Filter items based on percentile threshold
     return items
 
-async def ingest_niche(niche: str, percentile: int, provider: Optional[str] = None) -> List[int]:
-    """Ingest a niche using the requested provider and persist results to Supabase.
 
-    Returns a list of Supabase ``videos`` table IDs for the stored records.
-    """
+def _analyse_pacing(video_path: str) -> float:
+    """Estimate average shot length using scenedetect and OpenCV."""
+
+    try:
+        vm = VideoManager([video_path])
+        sm = SceneManager()
+        sm.add_detector(ContentDetector())
+        vm.set_downscale_factor()
+        vm.start()
+        sm.detect_scenes(frame_source=vm)
+        scenes = sm.get_scene_list()
+        durations = [
+            (end.get_frames() - start.get_frames()) / vm.get_framerate()
+            for start, end in scenes
+        ]
+        return float(np.mean(durations)) if durations else 0.0
+    except Exception:  # pragma: no cover - best effort
+        return 0.0
+
+
+def _classify_visual_style(video_path: str) -> str:
+    """Very rough visual style classification based on contrast."""
+
+    try:
+        cap = cv2.VideoCapture(video_path)
+        ret, frame = cap.read()
+        cap.release()
+        if not ret:
+            return "unknown"
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        return "cinematic" if gray.std() > 50 else "lo-fi"
+    except Exception:  # pragma: no cover
+        return "unknown"
+
+
+def _extract_onscreen_text(video_path: str) -> str:
+    """Extract on-screen text via pytesseract from the first frame."""
+
+    try:
+        cap = cv2.VideoCapture(video_path)
+        ret, frame = cap.read()
+        cap.release()
+        if not ret:
+            return ""
+        return pytesseract.image_to_string(frame)
+    except Exception:  # pragma: no cover
+        return ""
+
+
+async def ingest_niche(
+    niche: str, percentile: int, provider: Optional[str] = None
+) -> List[VideoRecord]:
+    """Ingest a niche using the requested provider and enrich video records."""
+
     provider_name = (provider or os.environ.get("INGESTION_PROVIDER", "apify")).lower()
     if provider_name == "playwright":
         items = await _ingest_niche_playwright(niche, percentile)
@@ -91,19 +133,58 @@ async def ingest_niche(niche: str, percentile: int, provider: Optional[str] = No
         items = await _ingest_niche_apify(niche, percentile)
 
     supabase = get_supabase_client()
-    video_ids: List[int] = []
+    records: List[VideoRecord] = []
+    audio_counts: Dict[str, int] = {}
+
     if supabase and items:
-        rows = [
-            {
+        for item in items:
+            url = item.get("url", "")
+            audio_id = item.get("audio_id", "audio")
+
+            try:
+                transcript_data = await transcribe_video(url)
+                transcript = transcript_data.get("text", "")
+            except Exception:
+                transcript = ""
+
+            pacing = _analyse_pacing(url)
+            visual_style = _classify_visual_style(url)
+            onscreen_text = _extract_onscreen_text(url)
+
+            audio_counts[audio_id] = audio_counts.get(audio_id, 0) + 1
+            trending_audio = audio_counts[audio_id] > 1
+
+            row = {
                 "niche": niche,
                 "provider": provider_name,
-                "data": item,
+                "url": url,
+                "audio_id": audio_id,
+                "transcript": transcript,
+                "pacing": pacing,
+                "visual_style": visual_style,
+                "onscreen_text": onscreen_text,
+                "trending_audio": trending_audio,
             }
-            for item in items
-        ]
-        try:
-            resp = supabase.table("videos").insert(rows).execute()
-            video_ids = [r.get("id") for r in resp.data or []]
-        except Exception:
-            pass
-    return video_ids
+            try:
+                resp = supabase.table("videos").insert(row).execute()
+                vid = resp.data[0]["id"] if resp.data else None
+            except Exception:
+                vid = None
+
+            records.append(
+                VideoRecord(
+                    id=vid,
+                    url=url,
+                    niche=niche,
+                    provider=provider_name,
+                    transcript=transcript,
+                    pacing=pacing,
+                    visual_style=visual_style,
+                    onscreen_text=onscreen_text,
+                    audio_id=audio_id,
+                    trending_audio=trending_audio,
+                )
+            )
+
+    return records
+

@@ -14,7 +14,7 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
 ## Backend Setup
 
 1. Install Python 3.10+ and create a virtual environment.
-2. Navigate to the `backend` directory and install dependencies (FastAPI, OpenAI, Supabase, Playwright and Pyppeteer clients):
+2. Navigate to the `backend` directory and install dependencies. In addition to FastAPI, OpenAI, Supabase and the Playwright/Pyppeteer clients, the backend now relies on libraries for audio and video analysis such as OpenCV, SceneDetect, MoviePy, Librosa, Pytesseract and ffmpeg-python.
 
    ```bash
    pip install -r requirements.txt
@@ -32,7 +32,7 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
 
 | Method | Endpoint        | Description                          |
 |-------|-----------------|--------------------------------------|
-| POST  | `/api/ingest`      | Ingest trending content data, store videos in Supabase and return pattern and package IDs. |
+| POST  | `/api/ingest`      | Ingest trending content data, analyze pacing, style, text and audio, store videos in Supabase and return pattern and package IDs. |
 | POST  | `/api/strategy`    | Analyze stored videos in Supabase and persist extracted patterns. |
 | POST  | `/api/generate`    | Generate a full content package from stored patterns and save it in Supabase. |
 
@@ -57,6 +57,12 @@ These endpoints now persist videos, patterns and generated packages to Supabase.
 
 The frontend includes a provider dropdown for ingestion requests and displays strategy results along with scripts, DALL‑E storyboard images, production notes and platform‑specific variations returned from the generation endpoint. Tailwind CSS is configured in `tailwind.config.js` and global styles are defined in `styles/globals.css`.
 
+### Workflow
+
+1. **Ingestion** – fetch trending videos for a niche, transcribe audio via Groq Whisper, analyse shot pacing with SceneDetect/OpenCV, classify visual style, run OCR for on‑screen text and flag reused audio as trending. Records are stored in Supabase and returned to the client.
+2. **Strategy** – GPT‑4/Claude evaluates the ingested `VideoRecord` objects to derive hooks, core value loops, narrative arcs, visual formulas and CTAs.
+3. **Generation** – using the extracted patterns and trending audio hints, GPT generates a script, DALL‑E storyboard, production notes (including pacing/style guidance) and platform‑specific variations.
+
 ### Ingestion Providers
 
 The ingestion service supports multiple scraping providers. Choose between Apify, Playwright, or Puppeteer by setting the `INGESTION_PROVIDER` environment variable or by sending a `provider` field in requests to `/api/ingest`. Ingestion responses include detected content patterns and a sample generated package.
@@ -68,6 +74,18 @@ Audio is extracted with `ffmpeg` and transcribed via the Groq Whisper API. Set `
 ### Environment Variables
 
 Copy `.env.example` to `.env` and populate it with API keys for Apify (including `APIFY_API_TOKEN` and `APIFY_ACTOR_ID`), Supabase (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`), OpenAI/DALL‑E and transcription services before running locally or deploying.
+
+Set `PYTESSERACT_PATH` to the location of the `tesseract` binary if it is not on your system path.
+
+### System Dependencies
+
+The ingestion pipeline expects `ffmpeg` and `tesseract-ocr` to be installed on the host system for audio extraction and OCR. On Debian/Ubuntu:
+
+```bash
+sudo apt-get install ffmpeg tesseract-ocr
+```
+
+Ensure the `PYTESSERACT_PATH` environment variable points to the installed binary when running inside containers or custom environments.
 
 ## Deployment
 

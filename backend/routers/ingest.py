@@ -30,11 +30,12 @@ async def ingest_trending_content(request: IngestRequest) -> IngestResponse:
     """
     # Call the ingestion service for each niche. The provider can be specified in
     # the request or via the INGESTION_PROVIDER environment variable.
-    video_ids: List[int] = []
+    video_records = []
     for niche in request.niches:
         percentile = int(request.top_percentile * 100)
-        ids = await ingest_niche(niche, percentile, provider=request.provider)
-        video_ids.extend(ids)
+        records = await ingest_niche(niche, percentile, provider=request.provider)
+        video_records.extend(records)
+    video_ids = [v.id for v in video_records if v.id]
 
     # After ingestion, analyze patterns across the stored videos.
     strategy_resp = await derive_patterns(
@@ -58,6 +59,7 @@ async def ingest_trending_content(request: IngestRequest) -> IngestResponse:
     return IngestResponse(
         message="Ingestion complete",
         video_ids=video_ids,
+        videos=video_records,
         patterns=strategy_resp.patterns,
         pattern_ids=strategy_resp.pattern_ids,
         generated=generate_resp,
