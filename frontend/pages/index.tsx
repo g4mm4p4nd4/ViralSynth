@@ -1,10 +1,17 @@
 import { useState } from 'react';
 
+interface PlatformVariation {
+  hook: string;
+  cta: string;
+}
+
 interface GenerateResponse {
   script: string;
   storyboard: string[];
   notes: string[];
-  variations: Record<string, string>;
+  variations: Record<string, PlatformVariation>;
+  audio_id?: string;
+  audio_url?: string;
   package_id?: number;
 }
 
@@ -14,15 +21,33 @@ interface VideoRecord {
   pacing?: number;
   visual_style?: string;
   onscreen_text?: string;
+  audio_id?: string;
+  audio_url?: string;
   trending_audio?: boolean;
+}
+
+interface Pattern {
+  id?: number;
+  hook: string;
+  core_value_loop: string;
+  narrative_arc: string;
+  visual_formula: string;
+  cta: string;
+}
+
+interface TrendingAudio {
+  audio_id: string;
+  count: number;
+  url?: string;
 }
 
 interface IngestResponse {
   message: string;
   video_ids: number[];
   videos: VideoRecord[];
-  patterns: string[];
+  patterns: Pattern[];
   pattern_ids: number[];
+  trending_audios: TrendingAudio[];
   generated?: GenerateResponse;
 }
 
@@ -103,13 +128,30 @@ export default function Home() {
           {ingestData?.video_ids && ingestData.video_ids.length > 0 && (
             <p className="mt-1 text-xs text-center">Stored videos: {ingestData.video_ids.join(', ')}</p>
           )}
+          {ingestData?.trending_audios && ingestData.trending_audios.length > 0 && (
+            <div className="mt-2 text-xs text-center">
+              Top audio:
+              {ingestData.trending_audios.map((a, idx) => (
+                <span key={a.audio_id} className="block">
+                  {idx + 1}. <a href={a.url} className="underline" target="_blank" rel="noreferrer">{a.audio_id}</a> ({a.count})
+                </span>
+              ))}
+            </div>
+          )}
           {ingestData?.videos && ingestData.videos.length > 0 && (
             <div className="mt-4 bg-gray-800 p-4 rounded">
               <h2 className="text-2xl font-semibold mb-2">Video Analysis</h2>
               <ul className="list-disc list-inside">
                 {ingestData.videos.map((v, idx) => (
                   <li key={idx} className="mb-2">
-                    <div>Pacing: {v.pacing ?? 'n/a'}s, Style: {v.visual_style ?? 'n/a'}{v.trending_audio ? ' (Trending audio)' : ''}</div>
+                    <div>
+                      Pacing: {v.pacing ?? 'n/a'}s, Style: {v.visual_style ?? 'n/a'}{v.trending_audio ? ' (Trending audio)' : ''}
+                    </div>
+                    {v.audio_id && (
+                      <div className="text-xs">
+                        Audio: <a href={v.audio_url} className="underline" target="_blank" rel="noreferrer">{v.audio_id}</a>
+                      </div>
+                    )}
                     {v.onscreen_text && <div className="text-xs">Text: {v.onscreen_text}</div>}
                   </li>
                 ))}
@@ -119,11 +161,18 @@ export default function Home() {
           {ingestData?.patterns && ingestData.patterns.length > 0 && (
             <div className="mt-4 bg-gray-800 p-4 rounded">
               <h2 className="text-2xl font-semibold mb-2">Strategy Results</h2>
-              <ul className="list-disc list-inside">
-                {ingestData.patterns.map((pattern, idx) => (
-                  <li key={idx}>{pattern}</li>
-                ))}
-              </ul>
+              {ingestData.patterns.map((p, idx) => (
+                <div key={idx} className="mb-3">
+                  <div className="font-semibold">Pattern {idx + 1}</div>
+                  <ul className="list-disc list-inside text-sm">
+                    <li>Hook: {p.hook}</li>
+                    <li>Value Loop: {p.core_value_loop}</li>
+                    <li>Narrative: {p.narrative_arc}</li>
+                    <li>Visual: {p.visual_formula}</li>
+                    <li>CTA: {p.cta}</li>
+                  </ul>
+                </div>
+              ))}
               {ingestData.pattern_ids && ingestData.pattern_ids.length > 0 && (
                 <p className="text-xs mt-2">Pattern IDs: {ingestData.pattern_ids.join(', ')}</p>
               )}
@@ -150,9 +199,9 @@ export default function Home() {
                   <h2 className="text-2xl font-semibold mb-2">Platform Variations</h2>
                   <ul className="list-disc list-inside">
                     {Object.entries(ingestData.generated.variations).map(
-                      ([platform, text]) => (
+                      ([platform, pv]) => (
                         <li key={platform}>
-                          <strong>{platform}:</strong> {text}
+                          <strong>{platform}:</strong> Hook - {pv.hook}; CTA - {pv.cta}
                         </li>
                       )
                     )}
@@ -200,9 +249,9 @@ export default function Home() {
               <div>
                 <h2 className="text-2xl font-semibold mb-2">Platform Variations</h2>
                 <ul className="list-disc list-inside">
-                  {Object.entries(response.variations).map(([platform, text]) => (
+                  {Object.entries(response.variations).map(([platform, pv]) => (
                     <li key={platform}>
-                      <strong>{platform}:</strong> {text}
+                      <strong>{platform}:</strong> Hook - {pv.hook}; CTA - {pv.cta}
                     </li>
                   ))}
                 </ul>

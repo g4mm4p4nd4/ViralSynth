@@ -26,3 +26,6 @@ This file tracks the remaining work required to bring the ViralSynth platform to
 - Integrated ingestion providers (Apify, Playwright, Puppeteer) with strategy and generation placeholders.
 - Frontend now offers provider selection, displays strategy patterns and renders generated scripts, storyboard images and notes.
 - Supabase persistence added for ingested videos, extracted patterns and generated packages; dashboard surfaces stored IDs.
+- Trending audio analyst aggregates audio usage with source links and surfaces rankings in the dashboard.
+- Pattern recognition module stores structured templates (hook, value loop, narrative arc, visual formula, CTA).
+- Generation module uses trending audio, pacing and visual style hints to produce platform-specific hook and CTA variations.

@@ -1,47 +1,66 @@
 """Service functions for generating content packages and storing them in Supabase."""
 
 import os
-from typing import List
+import json
+from typing import Dict, List
 from openai import AsyncOpenAI
 
-from ..models import GenerateRequest, GenerateResponse
+from ..models import (
+    GenerateRequest,
+    GenerateResponse,
+    Pattern,
+    PlatformVariation,
+)
 from .supabase import get_supabase_client
+from .ingestion import get_trending_audio
 
 
 async def generate_package(request: GenerateRequest) -> GenerateResponse:
     """Generate a script, storyboard and notes from stored patterns."""
     supabase = get_supabase_client()
 
-    patterns: List[str] = []
+    patterns: List[Pattern] = []
     trending_audio = None
+    audio_url = None
     pacing_hint = None
     style_hint = None
     if supabase:
         try:
             if request.pattern_ids:
-                resp = supabase.table("patterns").select("text").in_("id", request.pattern_ids).execute()
+                resp = supabase.table("patterns").select(
+                    "id,hook,core_value_loop,narrative_arc,visual_formula,cta"
+                ).in_("id", request.pattern_ids).execute()
             elif request.niche:
-                resp = supabase.table("patterns").select("text").eq("niche", request.niche).execute()
+                resp = supabase.table("patterns").select(
+                    "id,hook,core_value_loop,narrative_arc,visual_formula,cta"
+                ).eq("niche", request.niche).execute()
             else:
                 resp = None
             if resp:
-                patterns = [r["text"] for r in resp.data or []]
+                patterns = [Pattern(**r) for r in resp.data or []]
 
-            audio_resp = (
-                supabase.table("videos")
-                .select("audio_id, pacing, visual_style")
-                .eq("trending_audio", True)
-                .limit(1)
-                .execute()
-            )
-            if audio_resp.data:
-                trending_audio = audio_resp.data[0].get("audio_id")
-                pacing_hint = audio_resp.data[0].get("pacing")
-                style_hint = audio_resp.data[0].get("visual_style")
+            audio_list = await get_trending_audio(1)
+            if audio_list:
+                trending_audio = audio_list[0].audio_id
+                audio_url = audio_list[0].url
+                video_resp = (
+                    supabase.table("videos")
+                    .select("pacing, visual_style")
+                    .eq("audio_id", trending_audio)
+                    .limit(1)
+                    .execute()
+                )
+                if video_resp.data:
+                    pacing_hint = video_resp.data[0].get("pacing")
+                    style_hint = video_resp.data[0].get("visual_style")
         except Exception:
             patterns = []
 
-    patterns_text = "\n".join(patterns)
+    pattern_lines = [
+        f"Hook: {p.hook}; Value: {p.core_value_loop}; Narrative: {p.narrative_arc}; Visual: {p.visual_formula}; CTA: {p.cta}"
+        for p in patterns
+    ]
+    patterns_text = "\n".join(pattern_lines)
     style_context = (
         f"Trending audio: {trending_audio}. " if trending_audio else ""
     ) + (
@@ -51,7 +70,7 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
     client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
     try:
         completion = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=os.environ.get("GENERATION_MODEL", "gpt-4o-mini"),
             messages=[{
                 "role": "user",
                 "content": f"Using these patterns:\n{patterns_text}\n{style_context}\nGenerate a viral video script for: {request.prompt}",
@@ -86,7 +105,24 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
             "Maintain an average shot length of 1.2 seconds",
             "Film the A-roll with a blurred background",
         ]
-    variations = {request.platform: f"Hook optimized for {request.platform}"}
+    variations: Dict[str, PlatformVariation] = {}
+    try:
+        var_prompt = (
+            "Provide platform-specific hooks and CTAs for TikTok, Instagram and YouTube."
+            f"\nScript: {script}\nReturn JSON object mapping platform to hook and cta."
+        )
+        var_completion = await client.chat.completions.create(
+            model=os.environ.get("GENERATION_MODEL", "gpt-4o-mini"),
+            messages=[{"role": "user", "content": var_prompt}],
+        )
+        var_data = json.loads(var_completion.choices[0].message.content)
+        for platform, data in var_data.items():
+            variations[platform] = PlatformVariation(**data)
+    except Exception:
+        variations[request.platform] = PlatformVariation(
+            hook=f"Hook optimized for {request.platform}",
+            cta=f"CTA for {request.platform}",
+        )
 
     package_record = {
         "prompt": request.prompt,
@@ -95,8 +131,10 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
         "script": script,
         "storyboard": storyboard,
         "notes": notes,
-        "variations": variations,
+        "variations": {k: v.dict() for k, v in variations.items()},
         "pattern_ids": request.pattern_ids,
+        "audio_id": trending_audio,
+        "audio_url": audio_url,
     }
     package_id = None
     if supabase:
@@ -112,5 +150,7 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
         storyboard=storyboard,
         notes=notes,
         variations=variations,
+        audio_id=trending_audio,
+        audio_url=audio_url,
         package_id=package_id,
     )
