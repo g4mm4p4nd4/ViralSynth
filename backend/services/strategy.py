@@ -2,11 +2,12 @@
 
 import os
 import json
-from typing import List
+from typing import List, Optional
 from openai import AsyncOpenAI
 
 from ..models import Pattern, StrategyRequest, StrategyResponse
 from .supabase import get_supabase_client
+from .ingestion import get_trending_audio
 
 
 async def derive_patterns(request: StrategyRequest) -> StrategyResponse:
@@ -17,13 +18,14 @@ async def derive_patterns(request: StrategyRequest) -> StrategyResponse:
         try:
             if request.video_ids:
                 query = supabase.table("videos").select(
-                    "id, transcript, pacing, visual_style, onscreen_text, trending_audio, niche"
+                    "id, transcript, pacing, visual_style, onscreen_text, trending_audio, niche, likes, comments"
                 ).in_("id", request.video_ids)
             else:
                 query = supabase.table("videos").select(
-                    "id, transcript, pacing, visual_style, onscreen_text, trending_audio, niche"
+                    "id, transcript, pacing, visual_style, onscreen_text, trending_audio, niche, likes, comments"
                 ).in_("niche", request.niches)
-            videos = query.execute().data or []
+            limit = int(os.environ.get("PATTERN_ANALYSIS_LIMIT", 50))
+            videos = query.limit(limit).execute().data or []
         except Exception:
             videos = []
 
@@ -32,6 +34,11 @@ async def derive_patterns(request: StrategyRequest) -> StrategyResponse:
     styles = [v.get("visual_style") for v in videos if v.get("visual_style")]
     texts = [v.get("onscreen_text") for v in videos if v.get("onscreen_text")]
     audios = [v.get("trending_audio") for v in videos]
+    engagements = [
+        (v.get("likes") or 0) + (v.get("comments") or 0) for v in videos
+    ]
+    avg_engagement = sum(engagements) / len(engagements) if engagements else 0.0
+    prevalence = float(len(videos)) if videos else 0.0
 
     prompt = (
         "From the following video data derive recurring patterns. Return JSON with a list of objects each containing"
@@ -63,6 +70,10 @@ async def derive_patterns(request: StrategyRequest) -> StrategyResponse:
             )
         ]
 
+    for p in patterns:
+        p.prevalence = prevalence
+        p.engagement_score = avg_engagement
+
     pattern_ids: List[int] = []
     if supabase and patterns:
         rows = [
@@ -73,6 +84,8 @@ async def derive_patterns(request: StrategyRequest) -> StrategyResponse:
                 "narrative_arc": p.narrative_arc,
                 "visual_formula": p.visual_formula,
                 "cta": p.cta,
+                "prevalence": p.prevalence,
+                "engagement_score": p.engagement_score,
             }
             for p in patterns
         ]
@@ -85,4 +98,26 @@ async def derive_patterns(request: StrategyRequest) -> StrategyResponse:
         except Exception:
             pass
 
-    return StrategyResponse(patterns=patterns, pattern_ids=pattern_ids)
+    niche = request.niches[0] if request.niches else None
+    trending_audios = await get_trending_audio(niche=niche)
+    return StrategyResponse(
+        patterns=patterns, pattern_ids=pattern_ids, trending_audios=trending_audios
+    )
+
+
+async def fetch_patterns(niche: Optional[str] = None, limit: int = 10) -> List[Pattern]:
+    """Retrieve stored patterns from Supabase ordered by prevalence."""
+
+    supabase = get_supabase_client()
+    if not supabase:
+        return []
+    try:
+        query = supabase.table("patterns").select(
+            "id,hook,core_value_loop,narrative_arc,visual_formula,cta,prevalence,engagement_score"
+        )
+        if niche:
+            query = query.eq("niche", niche)
+        resp = query.order("prevalence", desc=True).limit(limit).execute()
+        return [Pattern(**r) for r in (resp.data or [])]
+    except Exception:
+        return []

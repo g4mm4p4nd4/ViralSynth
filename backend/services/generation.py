@@ -24,6 +24,7 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
     audio_url = None
     pacing_hint = None
     style_hint = None
+    pattern_ids_used: List[int] = []
     if supabase:
         try:
             if request.pattern_ids:
@@ -38,8 +39,11 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
                 resp = None
             if resp:
                 patterns = [Pattern(**r) for r in resp.data or []]
+                pattern_ids_used = [p.id for p in patterns if p.id]
+            else:
+                pattern_ids_used = request.pattern_ids or []
 
-            audio_list = await get_trending_audio(1)
+            audio_list = await get_trending_audio(request.niche, 1)
             if audio_list:
                 trending_audio = audio_list[0].audio_id
                 audio_url = audio_list[0].url
@@ -132,7 +136,7 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
         "storyboard": storyboard,
         "notes": notes,
         "variations": {k: v.dict() for k, v in variations.items()},
-        "pattern_ids": request.pattern_ids,
+        "pattern_ids": pattern_ids_used,
         "audio_id": trending_audio,
         "audio_url": audio_url,
     }
@@ -153,4 +157,5 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
         audio_id=trending_audio,
         audio_url=audio_url,
         package_id=package_id,
+        pattern_ids=pattern_ids_used,
     )

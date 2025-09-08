@@ -8,8 +8,13 @@ class TrendingAudio(BaseModel):
     """Representation of an audio track ranked by usage."""
 
     audio_id: str = Field(..., description="Identifier for the audio track")
+    audio_hash: str = Field(..., description="Hash of the audio clip for deduplication")
     count: int = Field(..., description="Number of videos using this audio")
+    avg_engagement: float = Field(
+        0.0, description="Average engagement (likes + comments) per video"
+    )
     url: Optional[str] = Field(None, description="Source link for the audio")
+    niche: Optional[str] = Field(None, description="Niche where the audio trends")
 
 
 class Pattern(BaseModel):
@@ -21,6 +26,12 @@ class Pattern(BaseModel):
     narrative_arc: str = Field(..., description="Narrative arc or storyline")
     visual_formula: str = Field(..., description="Visual style or formula")
     cta: str = Field(..., description="Call to action at the end")
+    prevalence: Optional[float] = Field(
+        None, description="How frequently this pattern appears in analyzed videos"
+    )
+    engagement_score: Optional[float] = Field(
+        None, description="Average engagement score of videos with this pattern"
+    )
 
 
 class GenerateRequest(BaseModel):
@@ -60,6 +71,9 @@ class GenerateResponse(BaseModel):
     package_id: Optional[int] = Field(
         None, description="Supabase ID for the stored generated package.",
     )
+    pattern_ids: List[int] = Field(
+        default_factory=list, description="Pattern IDs applied during generation"
+    )
 
 
 class VideoRecord(BaseModel):
@@ -84,6 +98,15 @@ class VideoRecord(BaseModel):
     )
     audio_url: Optional[str] = Field(
         None, description="Source link for the video's audio track",
+    )
+    audio_hash: Optional[str] = Field(
+        None, description="Hash of the audio clip for deduplication",
+    )
+    likes: Optional[int] = Field(
+        None, description="Number of likes for the video",
+    )
+    comments: Optional[int] = Field(
+        None, description="Number of comments for the video",
     )
     trending_audio: bool = Field(
         False, description="Flag indicating if the audio track is trending",
@@ -144,4 +167,8 @@ class StrategyResponse(BaseModel):
     )
     pattern_ids: List[int] = Field(
         default_factory=list, description="Supabase IDs for stored patterns.",
+    )
+    trending_audios: List[TrendingAudio] = Field(
+        default_factory=list,
+        description="Ranked trending audio tracks across dataset",
     )

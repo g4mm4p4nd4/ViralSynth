@@ -13,6 +13,7 @@ interface GenerateResponse {
   audio_id?: string;
   audio_url?: string;
   package_id?: number;
+  pattern_ids?: number[];
 }
 
 interface VideoRecord {
@@ -23,6 +24,9 @@ interface VideoRecord {
   onscreen_text?: string;
   audio_id?: string;
   audio_url?: string;
+   audio_hash?: string;
+   likes?: number;
+   comments?: number;
   trending_audio?: boolean;
 }
 
@@ -33,12 +37,17 @@ interface Pattern {
   narrative_arc: string;
   visual_formula: string;
   cta: string;
+  prevalence?: number;
+  engagement_score?: number;
 }
 
 interface TrendingAudio {
   audio_id: string;
+  audio_hash: string;
   count: number;
+  avg_engagement: number;
   url?: string;
+  niche?: string;
 }
 
 interface IngestResponse {
@@ -57,6 +66,12 @@ export default function Home() {
   const [provider, setProvider] = useState('apify');
   const [ingestData, setIngestData] = useState<IngestResponse | null>(null);
   const [response, setResponse] = useState<GenerateResponse | null>(null);
+  const [selectedPatternId, setSelectedPatternId] = useState<string>('auto');
+
+  const selectedPattern =
+    selectedPatternId !== 'auto'
+      ? ingestData?.patterns.find((p) => p.id === Number(selectedPatternId))
+      : null;
 
   // Calls the backend to generate a placeholder content package
   const handleGenerate = async () => {
@@ -64,7 +79,9 @@ export default function Home() {
     try {
       const payload: any = { prompt };
       if (niche) payload.niche = niche;
-      if (ingestData?.pattern_ids?.length) {
+      if (selectedPatternId !== 'auto') {
+        payload.pattern_ids = [Number(selectedPatternId)];
+      } else if (ingestData?.pattern_ids?.length) {
         payload.pattern_ids = ingestData.pattern_ids;
       }
       const res = await fetch('http://localhost:8000/api/generate', {
@@ -133,7 +150,7 @@ export default function Home() {
               Top audio:
               {ingestData.trending_audios.map((a, idx) => (
                 <span key={a.audio_id} className="block">
-                  {idx + 1}. <a href={a.url} className="underline" target="_blank" rel="noreferrer">{a.audio_id}</a> ({a.count})
+                  {idx + 1}. <a href={a.url} className="underline" target="_blank" rel="noreferrer">{a.audio_id}</a> ({a.count} uses, avg engagement {a.avg_engagement.toFixed(1)})
                 </span>
               ))}
             </div>
@@ -163,24 +180,42 @@ export default function Home() {
               <h2 className="text-2xl font-semibold mb-2">Strategy Results</h2>
               {ingestData.patterns.map((p, idx) => (
                 <div key={idx} className="mb-3">
-                  <div className="font-semibold">Pattern {idx + 1}</div>
+                  <div className="font-semibold">Pattern {p.id ?? idx + 1}</div>
                   <ul className="list-disc list-inside text-sm">
                     <li>Hook: {p.hook}</li>
                     <li>Value Loop: {p.core_value_loop}</li>
                     <li>Narrative: {p.narrative_arc}</li>
                     <li>Visual: {p.visual_formula}</li>
                     <li>CTA: {p.cta}</li>
+                    {p.prevalence && (
+                      <li>Prevalence: {p.prevalence}</li>
+                    )}
+                    {p.engagement_score && (
+                      <li>Engagement: {p.engagement_score.toFixed(1)}</li>
+                    )}
                   </ul>
                 </div>
               ))}
-              {ingestData.pattern_ids && ingestData.pattern_ids.length > 0 && (
-                <p className="text-xs mt-2">Pattern IDs: {ingestData.pattern_ids.join(', ')}</p>
-              )}
+              <select
+                className="w-full p-2 mt-2 bg-gray-700 rounded"
+                value={selectedPatternId}
+                onChange={(e) => setSelectedPatternId(e.target.value)}
+              >
+                <option value="auto">Auto-select pattern</option>
+                {ingestData.patterns.map((p) => (
+                  <option key={p.id} value={p.id}>{p.id}</option>
+                ))}
+              </select>
             </div>
           )}
           {ingestData?.generated && (
             <div className="mt-4 bg-gray-800 p-4 rounded">
               <h2 className="text-2xl font-semibold mb-2">Generated Script</h2>
+              {ingestData.generated.audio_id && (
+                <p className="text-xs mb-2">
+                  Audio: <a href={ingestData.generated.audio_url} className="underline" target="_blank" rel="noreferrer">{ingestData.generated.audio_id}</a>
+                </p>
+              )}
               <p className="mb-4 whitespace-pre-line">{ingestData.generated.script}</p>
               <h2 className="text-2xl font-semibold mb-2">Storyboard</h2>
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -231,6 +266,11 @@ export default function Home() {
 
             {response && (
               <div className="bg-gray-800 p-4 rounded">
+            {response.audio_id && (
+              <p className="text-sm mb-2">
+                Audio: <a href={response.audio_url} className="underline" target="_blank" rel="noreferrer">{response.audio_id}</a>
+              </p>
+            )}
             <h2 className="text-2xl font-semibold mb-2">Generated Script</h2>
             <p className="mb-4 whitespace-pre-line">{response.script}</p>
             <h2 className="text-2xl font-semibold mb-2">Storyboard</h2>
@@ -254,6 +294,18 @@ export default function Home() {
                       <strong>{platform}:</strong> Hook - {pv.hook}; CTA - {pv.cta}
                     </li>
                   ))}
+                </ul>
+              </div>
+            )}
+            {selectedPattern && (
+              <div className="mt-4">
+                <h2 className="text-2xl font-semibold mb-2">Selected Pattern</h2>
+                <ul className="list-disc list-inside text-sm">
+                  <li>Hook: {selectedPattern.hook}</li>
+                  <li>Value Loop: {selectedPattern.core_value_loop}</li>
+                  <li>Narrative: {selectedPattern.narrative_arc}</li>
+                  <li>Visual: {selectedPattern.visual_formula}</li>
+                  <li>CTA: {selectedPattern.cta}</li>
                 </ul>
               </div>
             )}

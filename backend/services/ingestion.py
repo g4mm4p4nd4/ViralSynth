@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from typing import Any, Dict, List, Optional
+import hashlib
 
 import cv2
 import numpy as np
@@ -141,6 +142,9 @@ async def ingest_niche(
             url = item.get("url", "")
             audio_id = item.get("audio_id", "audio")
             audio_url = item.get("audio_url", f"https://audio.example/{audio_id}")
+            likes = int(item.get("likes", 0) or 0)
+            comments = int(item.get("comments", 0) or 0)
+            audio_hash = hashlib.md5(audio_id.encode()).hexdigest()
 
             try:
                 transcript_data = await transcribe_video(url)
@@ -161,6 +165,9 @@ async def ingest_niche(
                 "url": url,
                 "audio_id": audio_id,
                 "audio_url": audio_url,
+                "audio_hash": audio_hash,
+                "likes": likes,
+                "comments": comments,
                 "transcript": transcript,
                 "pacing": pacing,
                 "visual_style": visual_style,
@@ -185,6 +192,9 @@ async def ingest_niche(
                     onscreen_text=onscreen_text,
                     audio_id=audio_id,
                     audio_url=audio_url,
+                    audio_hash=audio_hash,
+                    likes=likes,
+                    comments=comments,
                     trending_audio=trending_audio,
                 )
             )
@@ -192,7 +202,9 @@ async def ingest_niche(
     return records
 
 
-async def get_trending_audio(limit: int = 10) -> List[TrendingAudio]:
+async def get_trending_audio(
+    niche: Optional[str] = None, limit: int = 10
+) -> List[TrendingAudio]:
     """Aggregate audio usage across all videos and return top results."""
 
     limit = int(os.environ.get("TRENDING_AUDIO_LIMIT", limit))
@@ -200,20 +212,46 @@ async def get_trending_audio(limit: int = 10) -> List[TrendingAudio]:
     if not supabase:
         return []
     try:
-        resp = supabase.table("videos").select("audio_id,audio_url").execute()
+        query = supabase.table("videos").select(
+            "audio_id,audio_url,audio_hash,niche,likes,comments"
+        )
+        if niche:
+            query = query.eq("niche", niche)
+        resp = query.execute()
         rows = resp.data or []
     except Exception:
         return []
 
     counts: Dict[str, int] = {}
     urls: Dict[str, str] = {}
+    hashes: Dict[str, str] = {}
+    niches: Dict[str, str] = {}
+    engagements: Dict[str, int] = {}
     for r in rows:
         aid = r.get("audio_id") or ""
         if not aid:
             continue
         counts[aid] = counts.get(aid, 0) + 1
         urls.setdefault(aid, r.get("audio_url") or r.get("url"))
+        hashes.setdefault(aid, r.get("audio_hash") or "")
+        niches.setdefault(aid, r.get("niche"))
+        engagements[aid] = engagements.get(aid, 0) + (
+            (r.get("likes") or 0) + (r.get("comments") or 0)
+        )
 
     ranked = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:limit]
-    return [TrendingAudio(audio_id=a, count=c, url=urls.get(a)) for a, c in ranked]
+    results: List[TrendingAudio] = []
+    for aid, count in ranked:
+        avg = engagements.get(aid, 0) / count if count else 0
+        results.append(
+            TrendingAudio(
+                audio_id=aid,
+                audio_hash=hashes.get(aid) or "",
+                count=count,
+                avg_engagement=avg,
+                url=urls.get(aid),
+                niche=niches.get(aid),
+            )
+        )
+    return results
 

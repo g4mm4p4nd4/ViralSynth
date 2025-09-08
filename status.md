@@ -29,3 +29,6 @@ This file tracks the remaining work required to bring the ViralSynth platform to
 - Trending audio analyst aggregates audio usage with source links and surfaces rankings in the dashboard.
 - Pattern recognition module stores structured templates (hook, value loop, narrative arc, visual formula, CTA).
 - Generation module uses trending audio, pacing and visual style hints to produce platform-specific hook and CTA variations.
+- Cross-dataset trending audio rankings compute engagement averages and are available via `/api/audio/trending`.
+- Patterns now track prevalence and engagement scores and can be fetched through `/api/patterns` with dashboard selection support.
+- Generation endpoint returns applied pattern IDs and audio metadata, surfaced in the React dashboard.
