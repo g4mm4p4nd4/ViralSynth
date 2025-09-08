@@ -7,7 +7,7 @@ ViralSynth is an autonomous content strategy & generation engine designed to hel
 This repository contains two services:
 
 - `backend/` – a FastAPI application that exposes REST endpoints for ingesting trending content, analyzing strategies and generating content packages.
-- `frontend/` – a Next.js webapp with Tailwind CSS that provides a dashboard for entering prompts and viewing generated scripts, images and notes.
+- `frontend/` – a Next.js webapp with Tailwind CSS that provides a dashboard for entering prompts and viewing generated scripts, images and notes. The dashboard now surfaces trending audio metrics and structured pattern details.
 
 Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spec_writer.md`, `agents_project_manager.md`) outline the autonomous agents used to build the system. The `status.md` file tracks outstanding work.
 
@@ -32,9 +32,9 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
 
 | Method | Endpoint        | Description                          |
 |-------|-----------------|--------------------------------------|
-| POST  | `/api/ingest`      | Ingest trending content data, analyze pacing, style, text and audio, store videos in Supabase and return pattern and package IDs. |
-| POST  | `/api/strategy`    | Analyze stored videos in Supabase and persist extracted patterns. |
-| POST  | `/api/generate`    | Generate a full content package from stored patterns and save it in Supabase. |
+| POST  | `/api/ingest`      | Ingest trending content data, analyze pacing, style, text and audio, store videos in Supabase and return pattern IDs, trending audio rankings and a sample package. |
+| POST  | `/api/strategy`    | Analyze stored videos in Supabase and persist structured templates (hook, value loop, narrative arc, visual formula, CTA). |
+| POST  | `/api/generate`    | Generate a full content package from stored patterns and trending audio hints and save it in Supabase. |
 
 These endpoints now persist videos, patterns and generated packages to Supabase. LLM and scraping integrations remain rudimentary and should be expanded for production use.
 
@@ -59,9 +59,9 @@ The frontend includes a provider dropdown for ingestion requests and displays st
 
 ### Workflow
 
-1. **Ingestion** – fetch trending videos for a niche, transcribe audio via Groq Whisper, analyse shot pacing with SceneDetect/OpenCV, classify visual style, run OCR for on‑screen text and flag reused audio as trending. Records are stored in Supabase and returned to the client.
-2. **Strategy** – GPT‑4/Claude evaluates the ingested `VideoRecord` objects to derive hooks, core value loops, narrative arcs, visual formulas and CTAs.
-3. **Generation** – using the extracted patterns and trending audio hints, GPT generates a script, DALL‑E storyboard, production notes (including pacing/style guidance) and platform‑specific variations.
+1. **Ingestion** – fetch trending videos for a niche, transcribe audio via Groq Whisper, analyse shot pacing with SceneDetect/OpenCV, classify visual style, run OCR for on‑screen text and aggregate audio usage to rank trending tracks with source links.
+2. **Strategy** – GPT‑4/Claude evaluates the ingested `VideoRecord` objects with simple statistics to derive structured templates (hook, core value loop, narrative arc, visual formula, CTA) which are saved in Supabase.
+3. **Generation** – using the extracted patterns, trending audio, pacing and visual style hints, GPT generates a script, DALL‑E storyboard, production notes and platform‑specific hook/CTA variations.
 
 ### Ingestion Providers
 

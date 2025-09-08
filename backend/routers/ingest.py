@@ -9,7 +9,7 @@ from ..models import (
     StrategyRequest,
     GenerateRequest,
 )
-from ..services.ingestion import ingest_niche
+from ..services.ingestion import ingest_niche, get_trending_audio
 from ..services.strategy import derive_patterns
 from ..services.generation import generate_package
 
@@ -37,6 +37,8 @@ async def ingest_trending_content(request: IngestRequest) -> IngestResponse:
         video_records.extend(records)
     video_ids = [v.id for v in video_records if v.id]
 
+    trending_audios = await get_trending_audio()
+
     # After ingestion, analyze patterns across the stored videos.
     strategy_resp = await derive_patterns(
         StrategyRequest(niches=request.niches, video_ids=video_ids)
@@ -62,5 +64,6 @@ async def ingest_trending_content(request: IngestRequest) -> IngestResponse:
         videos=video_records,
         patterns=strategy_resp.patterns,
         pattern_ids=strategy_resp.pattern_ids,
+        trending_audios=trending_audios,
         generated=generate_resp,
     )

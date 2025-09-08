@@ -1,10 +1,11 @@
 """Service functions for analyzing content patterns from Supabase."""
 
 import os
+import json
 from typing import List
 from openai import AsyncOpenAI
 
-from ..models import StrategyRequest, StrategyResponse
+from ..models import Pattern, StrategyRequest, StrategyResponse
 from .supabase import get_supabase_client
 
 
@@ -33,36 +34,54 @@ async def derive_patterns(request: StrategyRequest) -> StrategyResponse:
     audios = [v.get("trending_audio") for v in videos]
 
     prompt = (
-        "You are an expert content strategist. From the following video data, derive concise patterns for hooks, core value loops, "
-        "narrative arcs, visual formulas and CTAs."\
+        "From the following video data derive recurring patterns. Return JSON with a list of objects each containing"
+        " keys: hook, core_value_loop, narrative_arc, visual_formula, cta."\
         f"\nTranscripts: {transcripts}"\
         f"\nPacing: {pacing}"\
         f"\nVisual Style: {styles}"\
         f"\nOn-screen Text: {texts}"\
-        f"\nTrending Audio Flags: {audios}"
     )
 
+    patterns: List[Pattern] = []
     try:
         client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         completion = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=os.environ.get("PATTERN_MODEL", "gpt-4o-mini"),
             messages=[{"role": "user", "content": prompt}],
         )
-        raw_patterns = completion.choices[0].message.content.split("\n")
-        patterns = [p.strip("- ") for p in raw_patterns if p.strip()]
+        data = json.loads(completion.choices[0].message.content)
+        for p in data.get("patterns", []):
+            patterns.append(Pattern(**p))
     except Exception:
         patterns = [
-            "Hook pattern: start with a bold question and match to trending audio",
-            "Visual formula: lo-fi shots with high contrast text overlays",
-            "CTA pattern: direct ask in final shot with on-screen text",
+            Pattern(
+                hook="Ask a bold question over trending audio",
+                core_value_loop="Provide three rapid tips",
+                narrative_arc="Problem-solution reveal",
+                visual_formula="Lo-fi selfie clips with captions",
+                cta="Follow for more hacks",
+            )
         ]
 
     pattern_ids: List[int] = []
     if supabase and patterns:
-        rows = [{"niche": request.niches[0] if request.niches else None, "text": p} for p in patterns]
+        rows = [
+            {
+                "niche": request.niches[0] if request.niches else None,
+                "hook": p.hook,
+                "core_value_loop": p.core_value_loop,
+                "narrative_arc": p.narrative_arc,
+                "visual_formula": p.visual_formula,
+                "cta": p.cta,
+            }
+            for p in patterns
+        ]
         try:
             resp = supabase.table("patterns").insert(rows).execute()
-            pattern_ids = [r.get("id") for r in resp.data or []]
+            if resp.data:
+                for pat, row in zip(patterns, resp.data):
+                    pat.id = row.get("id")
+                pattern_ids = [r.get("id") for r in resp.data]
         except Exception:
             pass
 

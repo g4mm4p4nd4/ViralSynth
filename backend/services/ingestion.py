@@ -14,7 +14,7 @@ from scenedetect.detectors import ContentDetector
 from playwright.async_api import async_playwright
 from pyppeteer import launch
 
-from ..models import VideoRecord
+from ..models import VideoRecord, TrendingAudio
 from .supabase import get_supabase_client
 from .transcription import transcribe_video
 
@@ -140,6 +140,7 @@ async def ingest_niche(
         for item in items:
             url = item.get("url", "")
             audio_id = item.get("audio_id", "audio")
+            audio_url = item.get("audio_url", f"https://audio.example/{audio_id}")
 
             try:
                 transcript_data = await transcribe_video(url)
@@ -159,6 +160,7 @@ async def ingest_niche(
                 "provider": provider_name,
                 "url": url,
                 "audio_id": audio_id,
+                "audio_url": audio_url,
                 "transcript": transcript,
                 "pacing": pacing,
                 "visual_style": visual_style,
@@ -182,9 +184,36 @@ async def ingest_niche(
                     visual_style=visual_style,
                     onscreen_text=onscreen_text,
                     audio_id=audio_id,
+                    audio_url=audio_url,
                     trending_audio=trending_audio,
                 )
             )
 
     return records
+
+
+async def get_trending_audio(limit: int = 10) -> List[TrendingAudio]:
+    """Aggregate audio usage across all videos and return top results."""
+
+    limit = int(os.environ.get("TRENDING_AUDIO_LIMIT", limit))
+    supabase = get_supabase_client()
+    if not supabase:
+        return []
+    try:
+        resp = supabase.table("videos").select("audio_id,audio_url").execute()
+        rows = resp.data or []
+    except Exception:
+        return []
+
+    counts: Dict[str, int] = {}
+    urls: Dict[str, str] = {}
+    for r in rows:
+        aid = r.get("audio_id") or ""
+        if not aid:
+            continue
+        counts[aid] = counts.get(aid, 0) + 1
+        urls.setdefault(aid, r.get("audio_url") or r.get("url"))
+
+    ranked = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:limit]
+    return [TrendingAudio(audio_id=a, count=c, url=urls.get(a)) for a, c in ranked]
 
