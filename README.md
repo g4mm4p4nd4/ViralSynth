@@ -35,6 +35,8 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
 | POST  | `/api/ingest`      | Ingest trending content data, analyze pacing, style, text and audio, store videos in Supabase and return pattern IDs, trending audio rankings and a sample package. |
 | POST  | `/api/strategy`    | Analyze stored videos in Supabase and persist structured templates (hook, value loop, narrative arc, visual formula, CTA). |
 | POST  | `/api/generate`    | Generate a full content package from stored patterns and trending audio hints and save it in Supabase. |
+| GET   | `/api/audio/trending` | Retrieve top trending audio clips with usage counts and engagement. |
+| GET   | `/api/patterns`       | Fetch stored patterns ordered by prevalence for a given niche. |
 
 These endpoints now persist videos, patterns and generated packages to Supabase. LLM and scraping integrations remain rudimentary and should be expanded for production use.
 
@@ -76,6 +78,11 @@ Audio is extracted with `ffmpeg` and transcribed via the Groq Whisper API. Set `
 Copy `.env.example` to `.env` and populate it with API keys for Apify (including `APIFY_API_TOKEN` and `APIFY_ACTOR_ID`), Supabase (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`), OpenAI/DALL‑E and transcription services before running locally or deploying.
 
 Set `PYTESSERACT_PATH` to the location of the `tesseract` binary if it is not on your system path.
+
+Additional knobs:
+
+- `TRENDING_AUDIO_LIMIT` – maximum number of audio tracks returned by the ranking service.
+- `PATTERN_ANALYSIS_LIMIT` – cap on number of videos analyzed when mining patterns.
 
 ### System Dependencies
 
