@@ -7,7 +7,7 @@ ViralSynth is an autonomous content strategy & generation engine designed to hel
 This repository contains two services:
 
 - `backend/` – a FastAPI application that exposes REST endpoints for ingesting trending content, analyzing strategies and generating content packages.
-- `frontend/` – a Next.js webapp with Tailwind CSS that provides a dashboard for entering prompts and viewing generated scripts, images and notes. The dashboard now surfaces trending audio metrics and structured pattern details.
+- `frontend/` – a Next.js webapp with Tailwind CSS that provides a tabbed dashboard for trending audio, patterns, and content generation with optional pattern overrides. The dashboard now surfaces trending audio metrics and structured pattern details.
 
 Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spec_writer.md`, `agents_project_manager.md`) outline the autonomous agents used to build the system. The `status.md` file tracks outstanding work.
 
@@ -34,7 +34,7 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
 |-------|-----------------|--------------------------------------|
 | POST  | `/api/ingest`      | Ingest trending content data, analyze pacing, style, text and audio, store videos in Supabase and return pattern IDs, trending audio rankings and a sample package. |
 | POST  | `/api/strategy`    | Analyze stored videos in Supabase and persist structured templates (hook, value loop, narrative arc, visual formula, CTA). |
-| POST  | `/api/generate`    | Generate a full content package from stored patterns and trending audio hints and save it in Supabase. |
+| POST  | `/api/generate`    | Generate a full content package from stored patterns and trending audio hints. Accepts `niche` and optional `pattern_ids` overrides and returns the selected audio and pattern details. |
 | GET   | `/api/audio/trending` | Retrieve top trending audio clips with usage counts and engagement. |
 | GET   | `/api/patterns`       | Fetch stored patterns ordered by prevalence for a given niche. |
 
@@ -83,6 +83,7 @@ Additional knobs:
 
 - `TRENDING_AUDIO_LIMIT` – maximum number of audio tracks returned by the ranking service.
 - `PATTERN_ANALYSIS_LIMIT` – cap on number of videos analyzed when mining patterns.
+- `PATTERN_CHOOSE_LIMIT` – number of top patterns evaluated when auto-selecting during generation.
 
 ### System Dependencies
 
