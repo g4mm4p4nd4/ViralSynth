@@ -2,7 +2,7 @@
 
 import os
 import json
-from typing import Dict, List
+from typing import Dict, List, Optional
 from openai import AsyncOpenAI
 
 from ..models import (
@@ -12,53 +12,34 @@ from ..models import (
     PlatformVariation,
 )
 from .supabase import get_supabase_client
-from .ingestion import get_trending_audio
+from .chooser import choose_assets
 
 
 async def generate_package(request: GenerateRequest) -> GenerateResponse:
     """Generate a script, storyboard and notes from stored patterns."""
     supabase = get_supabase_client()
 
-    patterns: List[Pattern] = []
-    trending_audio = None
-    audio_url = None
-    pacing_hint = None
-    style_hint = None
-    pattern_ids_used: List[int] = []
-    if supabase:
-        try:
-            if request.pattern_ids:
-                resp = supabase.table("patterns").select(
-                    "id,hook,core_value_loop,narrative_arc,visual_formula,cta"
-                ).in_("id", request.pattern_ids).execute()
-            elif request.niche:
-                resp = supabase.table("patterns").select(
-                    "id,hook,core_value_loop,narrative_arc,visual_formula,cta"
-                ).eq("niche", request.niche).execute()
-            else:
-                resp = None
-            if resp:
-                patterns = [Pattern(**r) for r in resp.data or []]
-                pattern_ids_used = [p.id for p in patterns if p.id]
-            else:
-                pattern_ids_used = request.pattern_ids or []
+    audio_obj, patterns = await choose_assets(
+        niche=request.niche, pattern_ids=request.pattern_ids
+    )
+    pattern_ids_used: List[int] = [p.id for p in patterns if p.id]
 
-            audio_list = await get_trending_audio(request.niche, 1)
-            if audio_list:
-                trending_audio = audio_list[0].audio_id
-                audio_url = audio_list[0].url
-                video_resp = (
-                    supabase.table("videos")
-                    .select("pacing, visual_style")
-                    .eq("audio_id", trending_audio)
-                    .limit(1)
-                    .execute()
-                )
-                if video_resp.data:
-                    pacing_hint = video_resp.data[0].get("pacing")
-                    style_hint = video_resp.data[0].get("visual_style")
+    pacing_hint: Optional[float] = None
+    style_hint: Optional[str] = None
+    if supabase and audio_obj:
+        try:
+            video_resp = (
+                supabase.table("videos")
+                .select("pacing, visual_style")
+                .eq("audio_id", audio_obj.audio_id)
+                .limit(1)
+                .execute()
+            )
+            if video_resp.data:
+                pacing_hint = video_resp.data[0].get("pacing")
+                style_hint = video_resp.data[0].get("visual_style")
         except Exception:
-            patterns = []
+            pass
 
     pattern_lines = [
         f"Hook: {p.hook}; Value: {p.core_value_loop}; Narrative: {p.narrative_arc}; Visual: {p.visual_formula}; CTA: {p.cta}"
@@ -66,7 +47,7 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
     ]
     patterns_text = "\n".join(pattern_lines)
     style_context = (
-        f"Trending audio: {trending_audio}. " if trending_audio else ""
+        f"Trending audio: {audio_obj.audio_id}. " if audio_obj else ""
     ) + (
         f"Pacing target: {pacing_hint} sec per shot. " if pacing_hint else ""
     ) + (f"Visual style: {style_hint}." if style_hint else "")
@@ -75,10 +56,12 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
     try:
         completion = await client.chat.completions.create(
             model=os.environ.get("GENERATION_MODEL", "gpt-4o-mini"),
-            messages=[{
-                "role": "user",
-                "content": f"Using these patterns:\n{patterns_text}\n{style_context}\nGenerate a viral video script for: {request.prompt}",
-            }],
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Using these patterns:\n{patterns_text}\n{style_context}\nGenerate a viral video script for: {request.prompt}",
+                }
+            ],
         )
         script = completion.choices[0].message.content.strip()
     except Exception:
@@ -86,8 +69,7 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
 
     try:
         image_resp = await client.images.generate(
-            model="dall-e-3",
-            prompt=f"Storyboard frames for: {request.prompt}"
+            model="dall-e-3", prompt=f"Storyboard frames for: {request.prompt}"
         )
         storyboard = [img.url for img in image_resp.data]
     except Exception:
@@ -97,8 +79,8 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
         ]
 
     notes = [f"Pattern used: {p}" for p in patterns[:3]] if patterns else []
-    if trending_audio:
-        notes.append(f"Use trending audio {trending_audio}")
+    if audio_obj:
+        notes.append(f"Use trending audio {audio_obj.audio_id}")
     if pacing_hint:
         notes.append(f"Aim for average shot length of {pacing_hint:.2f}s")
     if style_hint:
@@ -137,8 +119,8 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
         "notes": notes,
         "variations": {k: v.dict() for k, v in variations.items()},
         "pattern_ids": pattern_ids_used,
-        "audio_id": trending_audio,
-        "audio_url": audio_url,
+        "audio_id": audio_obj.audio_id if audio_obj else None,
+        "audio_url": audio_obj.url if audio_obj else None,
     }
     package_id = None
     if supabase:
@@ -154,8 +136,8 @@ async def generate_package(request: GenerateRequest) -> GenerateResponse:
         storyboard=storyboard,
         notes=notes,
         variations=variations,
-        audio_id=trending_audio,
-        audio_url=audio_url,
+        audio=audio_obj,
         package_id=package_id,
         pattern_ids=pattern_ids_used,
+        patterns=patterns,
     )

@@ -62,17 +62,17 @@ class GenerateResponse(BaseModel):
         default_factory=dict,
         description="Platform-specific hook and CTA variations",
     )
-    audio_id: Optional[str] = Field(
-        None, description="Trending audio identifier used for generation",
-    )
-    audio_url: Optional[str] = Field(
-        None, description="Source link for the selected audio",
+    audio: Optional[TrendingAudio] = Field(
+        None, description="Selected trending audio",
     )
     package_id: Optional[int] = Field(
         None, description="Supabase ID for the stored generated package.",
     )
     pattern_ids: List[int] = Field(
-        default_factory=list, description="Pattern IDs applied during generation"
+        default_factory=list, description="Pattern IDs applied during generation",
+    )
+    patterns: List[Pattern] = Field(
+        default_factory=list, description="Pattern details applied during generation",
     )
 
 
