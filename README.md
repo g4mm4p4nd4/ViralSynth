@@ -85,6 +85,7 @@ Additional knobs:
 - `PATTERN_ANALYSIS_LIMIT` – cap on number of videos analyzed when mining patterns.
 - `RANKING_DATE` – override the date used when backfilling daily audio rankings.
 
+- 'PATTERN_CHOOSE_LIMIT' - number of top patterns evaluated when auto-selecting during generation.
 ### System Dependencies
 
 The ingestion pipeline expects `ffmpeg` and `tesseract-ocr` to be installed on the host system for audio extraction and OCR. On Debian/Ubuntu:
