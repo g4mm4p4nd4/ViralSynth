@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS video_shots (
+    id SERIAL PRIMARY KEY,
+    video_id INTEGER REFERENCES videos(id) ON DELETE CASCADE,
+    start_time DOUBLE PRECISION NOT NULL,
+    end_time DOUBLE PRECISION NOT NULL,
+    brightness DOUBLE PRECISION,
+    contrast DOUBLE PRECISION,
+    text TEXT
+);

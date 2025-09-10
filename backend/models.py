@@ -1,5 +1,6 @@
 """Pydantic data models used across the ViralSynth backend."""
 
+from datetime import date
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
 
@@ -15,6 +16,33 @@ class TrendingAudio(BaseModel):
     )
     url: Optional[str] = Field(None, description="Source link for the audio")
     niche: Optional[str] = Field(None, description="Niche where the audio trends")
+
+
+class VideoShot(BaseModel):
+    """Metadata for an individual shot within a video."""
+
+    video_id: Optional[int] = Field(
+        None, description="Foreign key reference to the parent video"
+    )
+    start_time: float = Field(..., description="Shot start time in seconds")
+    end_time: float = Field(..., description="Shot end time in seconds")
+    brightness: float = Field(..., description="Average brightness of the shot")
+    contrast: float = Field(..., description="Average contrast of the shot")
+    text: str = Field("", description="On-screen text detected for the shot")
+
+
+class AudioDailyRanking(BaseModel):
+    """Stored daily ranking for an audio clip."""
+
+    ranking_date: date = Field(..., description="Date of the ranking")
+    niche: Optional[str] = Field(None, description="Niche the ranking applies to")
+    audio_id: str = Field(..., description="Identifier for the audio track")
+    rank: int = Field(..., description="Rank position starting at 1")
+    count: int = Field(..., description="Number of videos using the audio")
+    avg_engagement: float = Field(
+        0.0, description="Average engagement (likes + comments) per video"
+    )
+    url: Optional[str] = Field(None, description="Reference URL for the audio")
 
 
 class Pattern(BaseModel):
@@ -92,6 +120,12 @@ class VideoRecord(BaseModel):
     )
     onscreen_text: Optional[str] = Field(
         None, description="Detected on-screen text via OCR",
+    )
+    brightness: Optional[float] = Field(
+        None, description="Average brightness across the video"
+    )
+    contrast: Optional[float] = Field(
+        None, description="Average contrast across the video"
     )
     audio_id: Optional[str] = Field(
         None, description="Identifier for the video's audio track",

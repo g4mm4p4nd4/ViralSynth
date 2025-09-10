@@ -71,18 +71,19 @@ The ingestion service supports multiple scraping providers. Choose between Apify
 
 ### Transcription Service
 
-Audio is extracted with `ffmpeg` and transcribed via the Groq Whisper API. Set `GROQ_API_KEY` and use the `use_turbo` flag when calling the transcription helper to switch between `whisper-large` and `whisper-turbo` models.
+Audio is extracted with `ffmpeg` and transcribed via the Groq Whisper API. Set `GROQ_API_KEY` and use the `use_turbo` flag when calling the transcription helper to switch between `whisper-large` and `whisper-turbo` models. Long clips are automatically chunked with `ffmpeg` before being sent to Whisper so that transcripts can be assembled from multiple segments.
 
 ### Environment Variables
 
 Copy `.env.example` to `.env` and populate it with API keys for Apify (including `APIFY_API_TOKEN` and `APIFY_ACTOR_ID`), Supabase (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`), OpenAI/DALL‑E and transcription services before running locally or deploying.
 
-Set `PYTESSERACT_PATH` to the location of the `tesseract` binary if it is not on your system path.
+Set `PYTESSERACT_PATH` to the location of the `tesseract` binary if it is not on your system path. The audio ranking service stores daily results in `audio_daily_rankings` using the current date.
 
 Additional knobs:
 
 - `TRENDING_AUDIO_LIMIT` – maximum number of audio tracks returned by the ranking service.
 - `PATTERN_ANALYSIS_LIMIT` – cap on number of videos analyzed when mining patterns.
+- `RANKING_DATE` – override the date used when backfilling daily audio rankings.
 
 ### System Dependencies
 
