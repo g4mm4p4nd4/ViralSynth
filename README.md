@@ -36,7 +36,7 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
 | POST  | `/api/strategy`    | Analyze stored videos in Supabase and persist structured templates (hook, value loop, narrative arc, visual formula, CTA). |
 | POST  | `/api/generate`    | Generate a full content package from stored patterns and trending audio hints. Accepts `niche` and optional `pattern_ids` overrides and returns the selected audio and pattern details. |
 | GET   | `/api/audio/trending` | Retrieve top trending audio clips with usage counts and engagement. |
-| GET   | `/api/patterns`       | Fetch stored patterns ordered by prevalence for a given niche. |
+| GET   | `/api/patterns`       | Fetch stored patterns with prevalence and engagement stats for a given niche. |
 
 These endpoints now persist videos, patterns and generated packages to Supabase. LLM and scraping integrations remain rudimentary and should be expanded for production use.
 
@@ -62,7 +62,7 @@ The frontend includes a provider dropdown for ingestion requests and displays st
 ### Workflow
 
 1. **Ingestion** – fetch trending videos for a niche, transcribe audio via Groq Whisper, analyse shot pacing with SceneDetect/OpenCV, classify visual style, run OCR for on‑screen text and aggregate audio usage to rank trending tracks with source links.
-2. **Strategy** – GPT‑4/Claude evaluates the ingested `VideoRecord` objects with simple statistics to derive structured templates (hook, core value loop, narrative arc, visual formula, CTA) which are saved in Supabase.
+2. **Strategy** – video descriptors are mined to derive structured templates (hook, core value loop, narrative arc, visual formula, CTA) and aggregated into pattern stats (prevalence and average engagement) which are saved in Supabase.
 3. **Generation** – using the extracted patterns, trending audio, pacing and visual style hints, GPT generates a script, DALL‑E storyboard, production notes and platform‑specific hook/CTA variations.
 
 ### Ingestion Providers

@@ -21,6 +21,9 @@ class Pattern(BaseModel):
     """Structured template extracted from analyzed videos."""
 
     id: Optional[int] = Field(None, description="Supabase ID of the pattern")
+    niche: Optional[str] = Field(
+        None, description="Content niche where the pattern was observed"
+    )
     hook: str = Field(..., description="Opening hook used to grab attention")
     core_value_loop: str = Field(..., description="Main value delivery loop")
     narrative_arc: str = Field(..., description="Narrative arc or storyline")
