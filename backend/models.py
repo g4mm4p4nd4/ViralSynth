@@ -1,7 +1,9 @@
 """Pydantic data models used across the ViralSynth backend."""
 
+from datetime import date
+from typing import Optional
+
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional
 
 
 class TrendingAudio(BaseModel):
@@ -15,6 +17,33 @@ class TrendingAudio(BaseModel):
     )
     url: Optional[str] = Field(None, description="Source link for the audio")
     niche: Optional[str] = Field(None, description="Niche where the audio trends")
+
+
+class VideoShot(BaseModel):
+    """Metadata for an individual shot within a video."""
+
+    video_id: Optional[int] = Field(
+        None, description="Foreign key reference to the parent video"
+    )
+    start_time: float = Field(..., description="Shot start time in seconds")
+    end_time: float = Field(..., description="Shot end time in seconds")
+    brightness: float = Field(..., description="Average brightness of the shot")
+    contrast: float = Field(..., description="Average contrast of the shot")
+    text: str = Field("", description="On-screen text detected for the shot")
+
+
+class AudioDailyRanking(BaseModel):
+    """Stored daily ranking for an audio clip."""
+
+    ranking_date: date = Field(..., description="Date of the ranking")
+    niche: Optional[str] = Field(None, description="Niche the ranking applies to")
+    audio_id: str = Field(..., description="Identifier for the audio track")
+    rank: int = Field(..., description="Rank position starting at 1")
+    count: int = Field(..., description="Number of videos using the audio")
+    avg_engagement: float = Field(
+        0.0, description="Average engagement (likes + comments) per video"
+    )
+    url: Optional[str] = Field(None, description="Reference URL for the audio")
 
 
 class Pattern(BaseModel):
@@ -40,7 +69,7 @@ class GenerateRequest(BaseModel):
     prompt: str = Field(..., description="User-provided idea or topic for the content.")
     platform: Optional[str] = Field("tiktok", description="Target platform: tiktok, instagram, or youtube.")
     niche: Optional[str] = Field(None, description="Content niche, e.g., tech, fitness, finance.")
-    pattern_ids: Optional[List[int]] = Field(
+    pattern_ids: Optional[list[int]] = Field(
         None, description="Optional Supabase pattern IDs to condition generation.",
     )
 
@@ -56,9 +85,9 @@ class GenerateResponse(BaseModel):
     """Response model for generated content packages."""
 
     script: str
-    storyboard: List[str]
-    notes: List[str]
-    variations: Dict[str, PlatformVariation] = Field(
+    storyboard: list[str]
+    notes: list[str]
+    variations: dict[str, PlatformVariation] = Field(
         default_factory=dict,
         description="Platform-specific hook and CTA variations",
     )
@@ -71,8 +100,12 @@ class GenerateResponse(BaseModel):
     package_id: Optional[int] = Field(
         None, description="Supabase ID for the stored generated package.",
     )
-    pattern_ids: List[int] = Field(
+    pattern_ids: list[int] = Field(
         default_factory=list, description="Pattern IDs applied during generation"
+    )
+    why: dict[str, object] = Field(
+        default_factory=dict,
+        description="Explanation of why a pattern and audio were selected",
     )
 
 
@@ -92,6 +125,12 @@ class VideoRecord(BaseModel):
     )
     onscreen_text: Optional[str] = Field(
         None, description="Detected on-screen text via OCR",
+    )
+    brightness: Optional[float] = Field(
+        None, description="Average brightness across the video"
+    )
+    contrast: Optional[float] = Field(
+        None, description="Average contrast across the video"
     )
     audio_id: Optional[str] = Field(
         None, description="Identifier for the video's audio track",
@@ -116,7 +155,7 @@ class VideoRecord(BaseModel):
 class IngestRequest(BaseModel):
     """Request model for ingesting trending content data."""
 
-    niches: List[str] = Field(..., description="List of content niches to ingest, e.g., ['tech', 'fitness'].")
+    niches: list[str] = Field(..., description="List of content niches to ingest, e.g., ['tech', 'fitness'].")
     top_percentile: float = Field(
         0.05, description="Top percentile threshold (0-1) for selecting high performing content.",
     )
@@ -130,20 +169,20 @@ class IngestResponse(BaseModel):
     """Response confirming that an ingest request was processed."""
 
     message: str
-    video_ids: List[int] = Field(
+    video_ids: list[int] = Field(
         default_factory=list, description="Supabase IDs of stored video records.",
     )
-    videos: List[VideoRecord] = Field(
+    videos: list[VideoRecord] = Field(
         default_factory=list,
         description="Enriched video records stored in Supabase",
     )
-    patterns: List[Pattern] = Field(
+    patterns: list[Pattern] = Field(
         default_factory=list, description="Identified content patterns from ingestion.",
     )
-    pattern_ids: List[int] = Field(
+    pattern_ids: list[int] = Field(
         default_factory=list, description="Supabase IDs of stored patterns.",
     )
-    trending_audios: List[TrendingAudio] = Field(
+    trending_audios: list[TrendingAudio] = Field(
         default_factory=list, description="Ranked trending audio tracks across dataset",
     )
     generated: Optional[GenerateResponse] = Field(
@@ -155,20 +194,20 @@ class IngestResponse(BaseModel):
 class StrategyRequest(BaseModel):
     """Request model for analyzing content patterns."""
 
-    niches: List[str]
-    video_ids: Optional[List[int]] = Field(
+    niches: list[str]
+    video_ids: Optional[list[int]] = Field(
         None, description="Specific Supabase video IDs to analyze.",
     )
 
 
 class StrategyResponse(BaseModel):
-    patterns: List[Pattern] = Field(
+    patterns: list[Pattern] = Field(
         default_factory=list, description="Identified successful content patterns.",
     )
-    pattern_ids: List[int] = Field(
+    pattern_ids: list[int] = Field(
         default_factory=list, description="Supabase IDs for stored patterns.",
     )
-    trending_audios: List[TrendingAudio] = Field(
+    trending_audios: list[TrendingAudio] = Field(
         default_factory=list,
         description="Ranked trending audio tracks across dataset",
     )

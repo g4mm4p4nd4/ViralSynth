@@ -7,7 +7,7 @@ ViralSynth is an autonomous content strategy & generation engine designed to hel
 This repository contains two services:
 
 - `backend/` – a FastAPI application that exposes REST endpoints for ingesting trending content, analyzing strategies and generating content packages.
-- `frontend/` – a Next.js webapp with Tailwind CSS that provides a dashboard for entering prompts and viewing generated scripts, images and notes. The dashboard now surfaces trending audio metrics and structured pattern details.
+- `frontend/` – a Next.js webapp with Tailwind CSS that provides dashboards for exploring trending audio, reviewing ranked patterns, and generating content packages with deterministic "why" explanations for audio/pattern choices.
 
 Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spec_writer.md`, `agents_project_manager.md`) outline the autonomous agents used to build the system. The `status.md` file tracks outstanding work.
 
@@ -35,7 +35,7 @@ Supporting agent specifications (`agents.md`, `agents_architect.md`, `agents_spe
 | POST  | `/api/ingest`      | Ingest trending content data, analyze pacing, style, text and audio, store videos in Supabase and return pattern IDs, trending audio rankings and a sample package. |
 | POST  | `/api/strategy`    | Analyze stored videos in Supabase and persist structured templates (hook, value loop, narrative arc, visual formula, CTA). |
 | POST  | `/api/generate`    | Generate a full content package from stored patterns and trending audio hints and save it in Supabase. |
-| GET   | `/api/audio/trending` | Retrieve top trending audio clips with usage counts and engagement. |
+| GET   | `/api/audio/trending` | Retrieve top trending audio clips with usage counts, engagement and persisted daily ranks. |
 | GET   | `/api/patterns`       | Fetch stored patterns ordered by prevalence for a given niche. |
 
 These endpoints now persist videos, patterns and generated packages to Supabase. LLM and scraping integrations remain rudimentary and should be expanded for production use.
@@ -63,7 +63,17 @@ The frontend includes a provider dropdown for ingestion requests and displays st
 
 1. **Ingestion** – fetch trending videos for a niche, transcribe audio via Groq Whisper, analyse shot pacing with SceneDetect/OpenCV, classify visual style, run OCR for on‑screen text and aggregate audio usage to rank trending tracks with source links.
 2. **Strategy** – GPT‑4/Claude evaluates the ingested `VideoRecord` objects with simple statistics to derive structured templates (hook, core value loop, narrative arc, visual formula, CTA) which are saved in Supabase.
-3. **Generation** – using the extracted patterns, trending audio, pacing and visual style hints, GPT generates a script, DALL‑E storyboard, production notes and platform‑specific hook/CTA variations.
+3. **Generation** – using the extracted patterns, a deterministic chooser selects the highest scoring pattern/audio pair (weighted prevalence, engagement and usage) and records a `why` explanation before GPT generates the script, DALL‑E storyboard, production notes and platform‑specific hook/CTA variations.
+
+### Metrics CLI
+
+Use the audio ranker CLI to backfill or recompute daily audio usage statistics:
+
+```bash
+python -m backend.services.metrics.audio_ranker --niche tech --days 7
+```
+
+Rankings are persisted to the `audio_daily_rankings` table with conflict handling on `(ranking_date, niche, audio_id)` so the job is idempotent.
 
 ### Ingestion Providers
 
@@ -71,18 +81,20 @@ The ingestion service supports multiple scraping providers. Choose between Apify
 
 ### Transcription Service
 
-Audio is extracted with `ffmpeg` and transcribed via the Groq Whisper API. Set `GROQ_API_KEY` and use the `use_turbo` flag when calling the transcription helper to switch between `whisper-large` and `whisper-turbo` models.
+Audio is extracted with `ffmpeg` and transcribed via the Groq Whisper API. Set `GROQ_API_KEY` and use the `use_turbo` flag when calling the transcription helper to switch between `whisper-large` and `whisper-turbo` models. Long clips are automatically chunked with `ffmpeg` before being sent to Whisper so that transcripts can be assembled from multiple segments.
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and populate it with API keys for Apify (including `APIFY_API_TOKEN` and `APIFY_ACTOR_ID`), Supabase (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`), OpenAI/DALL‑E and transcription services before running locally or deploying.
+Copy `.env.example` to `.env` and populate it with API keys for Apify (including `APIFY_API_TOKEN` and `APIFY_ACTOR_ID`), Supabase (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`), OpenAI/DALL‑E and transcription services before running locally or deploying. The frontend dashboards read `NEXT_PUBLIC_API_BASE_URL` to call the backend API.
 
-Set `PYTESSERACT_PATH` to the location of the `tesseract` binary if it is not on your system path.
+Set `PYTESSERACT_PATH` to the location of the `tesseract` binary if it is not on your system path. The audio ranking service stores daily results in `audio_daily_rankings` using the current date.
 
 Additional knobs:
 
 - `TRENDING_AUDIO_LIMIT` – maximum number of audio tracks returned by the ranking service.
 - `PATTERN_ANALYSIS_LIMIT` – cap on number of videos analyzed when mining patterns.
+- `RANKING_DATE` – override the date used when backfilling daily audio rankings.
+- `NEXT_PUBLIC_API_BASE_URL` – base URL for the frontend dashboards when calling the backend API.
 
 ### System Dependencies
 
